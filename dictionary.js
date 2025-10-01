@@ -74,3 +74,13 @@ export class Dictionary {
     try {
       const data = JSON.parse(jsonString);
       if (Array.isArray(data.words)) {
+        this.words = data.words;
+        this.save();
+        return true;
+      }
+    } catch (e) {
+      console.error('Import error:', e);
+    }
+    return false;
+  }
+}
