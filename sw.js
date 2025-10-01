@@ -1,9 +1,11 @@
-const CACHE_NAME = 'wordquiz-v1';
+const CACHE_NAME = 'my-dictionary-v1';
 const urlsToCache = [
   '/',
   '/index.html',
   '/style.css',
-  '/script.js'
+  '/script.js',
+  '/dictionary.js',
+  '/lookup.js'
 ];
 
 self.addEventListener('install', event => {
