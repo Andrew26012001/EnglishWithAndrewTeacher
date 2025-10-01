@@ -26,7 +26,10 @@
 
       <!-- Поиск -->
       <section id="lookup-view" class="view active">
-        <input type="text" id="lookup-input" placeholder="Введите слово или фразу (например: look forward to)" autocomplete="off">
+        <div class="search-container">
+          <input type="text" id="lookup-input" placeholder="Введите слово или фразу (например: look forward to)" autocomplete="off">
+          <button id="search-btn" class="btn">Поиск</button>
+        </div>
         <div id="lookup-loader" class="loader" style="display: none;">Загрузка...</div>
         <div id="word-card-result" class="card" style="display: none;"></div>
       </section>
