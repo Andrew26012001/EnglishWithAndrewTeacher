@@ -1,16 +1,13 @@
 import { Dictionary } from './dictionary.js';
-import { lookupWord, getSynonyms } from './lookup.js';
+import { lookupWord } from './lookup.js';
 import { downloadJSON, generateQR } from './utils.js';
 
 const dict = new Dictionary();
 
-// DOM
 const themeToggle = document.getElementById('theme-toggle');
-const navBtns = document.querySelectorAll('.nav-btn');
-const views = document.querySelectorAll('.view');
 const lookupInput = document.getElementById('lookup-input');
-const loader = document.getElementById('lookup-loader');
-const wordCard = document.getElementById('word-card-result');
+const lookupLoader = document.getElementById('lookup-loader');
+const wordCardResult = document.getElementById('word-card-result');
 const wordsList = document.getElementById('words-list');
 const emptyDict = document.getElementById('empty-dict');
 const exportBtn = document.getElementById('export-btn');
@@ -26,194 +23,155 @@ const quizQuestion = document.getElementById('quiz-question');
 const quizAnswers = document.getElementById('quiz-answers');
 const nextQuizBtn = document.getElementById('next-quiz-btn');
 const startQuizBtn = document.getElementById('start-quiz-btn');
+const quizProgressBar = document.getElementById('quiz-progress-bar');
+const navBtns = document.querySelectorAll('.nav-btn');
 
 let currentQuizWord = null;
 let quizWords = [];
 
-// Theme
 function initTheme() {
-  const saved = localStorage.getItem('theme') || 'dark';
-  document.body.setAttribute('data-theme', saved);
-  themeToggle.innerHTML = `<span class="icon">${saved === 'dark' ? '🌙' : '☀️'}</span>`;
+  if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light');
+    themeToggle.querySelector('.icon').textContent = '☀️';
+  }
 }
 
 function toggleTheme() {
-  const current = document.body.getAttribute('data-theme');
-  const newTheme = current === 'dark' ? 'light' : 'dark';
-  document.body.setAttribute('data-theme', newTheme);
-  localStorage.setItem('theme', newTheme);
-  themeToggle.innerHTML = `<span class="icon">${newTheme === 'dark' ? '🌙' : '☀️'}</span>`;
+  document.body.classList.toggle('light');
+  const isLight = document.body.classList.contains('light');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  themeToggle.querySelector('.icon').textContent = isLight ? '☀️' : '🌙';
 }
 
-// Navigation
-function switchView(viewName) {
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(`${view}-view`).classList.add('active');
   navBtns.forEach(btn => btn.classList.remove('active'));
-  views.forEach(v => v.classList.remove('active'));
-  
-  document.querySelector(`.nav-btn[data-view="${viewName}"]`).classList.add('active');
-  document.getElementById(`${viewName}-view`).classList.add('active');
-  
-  if (viewName === 'dictionary') renderWordsList();
-  if (viewName === 'quiz') loadQuiz();
+  document.querySelector(`[data-view="${view}"]`).classList.add('active');
+
+  if (view === 'dictionary') renderWordsList();
+  if (view === 'quiz') loadQuiz();
 }
 
-// Lookup
 async function handleLookup() {
   const word = lookupInput.value.trim();
   if (!word) return;
-  
-  loader.style.display = 'block';
-  wordCard.style.display = 'none';
-  
+
+  lookupLoader.style.display = 'block';
+  wordCardResult.style.display = 'none';
+
   try {
     const data = await lookupWord(word);
     renderWordCard(data);
-  } catch (e) {
-    alert(e.message || 'Ошибка поиска');
+  } catch (error) {
+    wordCardResult.innerHTML = `<p style="color: red;">${error.message}</p>`;
+    wordCardResult.style.display = 'block';
   } finally {
-    loader.style.display = 'none';
+    lookupLoader.style.display = 'none';
   }
 }
 
-async function renderWordCard(data) {
-  let html = `<h2>${data.word}</h2>`;
-  if (data.phonetic) html += `<p>[${data.phonetic}]</p>`;
-  if (data.translation) html += `<p><strong>RU:</strong> ${data.translation}</p>`;
+function renderWordCard(data) {
+  let meaningsHtml = '';
+  data.meanings.forEach(meaning => {
+    meaningsHtml += `
+      <div class="meaning">
+        <div class="meaning-type">${meaning.partOfSpeech}</div>
+        ${meaning.definitions.map(def => `
+          <div class="definition">${def.definition}</div>
+          ${def.example ? `<div class="example">"${def.example}"</div>` : ''}
+        `).join('')}
+      </div>
+    `;
+  });
 
-  // Все определения
-  if (data.meanings && data.meanings.length > 0) {
-    html += `<div class="section"><h3>DEFINITIONS</h3>`;
-    data.meanings.forEach(meaning => {
-      meaning.definitions.forEach(def => {
-        html += `<div class="definition">• ${def.definition || ''}`;
-        if (def.example) html += `<br><em>“${def.example}”</em>`;
-        html += `</div>`;
-      });
-    });
-    html += `</div>`;
+  let synonymsHtml = '';
+  if (data.synonyms.length) {
+    synonymsHtml = `
+      <div class="synonyms">
+        <h4>Синонимы:</h4>
+        <div class="synonyms-list">
+          ${data.synonyms.map(syn => `<span class="synonym">${syn}</span>`).join('')}
+        </div>
+      </div>
+    `;
   }
 
-  // Примеры
-  if (data.meanings && data.meanings.length > 0) {
-    html += `<div class="section"><h3>EXAMPLES</h3>`;
-    data.meanings.forEach(meaning => {
-      meaning.definitions.forEach(def => {
-        if (def.example) {
-          html += `<div class="example">“${def.example}”</div>`;
-        }
-      });
-    });
-    html += `</div>`;
-  }
-
-  // Синонимы
-  html += `<div class="section"><h3>SYNONYMS</h3><div id="synonyms-container"></div></div>`;
-
-  // Аудио
-  if (data.audioUrl) {
-    html += `<button id="play-audio-btn" class="btn btn-small">🔊 Произношение</button>`;
-  }
-
-  // Кнопка сохранить
-  html += `
-    <div style="margin-top: 16px;">
-      <button id="save-current-word" class="btn save-btn">✅ Сохранить</button>
+  wordCardResult.innerHTML = `
+    <div class="word-header">
+      <div>
+        <div class="word-title">${data.word}</div>
+        <div class="phonetic">${data.phonetic} (${data.translation})</div>
+      </div>
+      ${data.audioUrl ? `<button class="audio-btn" onclick="new Audio('${data.audioUrl}').play()">🔊</button>` : ''}
     </div>
+    ${meaningsHtml}
+    ${synonymsHtml}
+    <button class="add-to-dict">Добавить в словарь</button>
   `;
 
-  wordCard.innerHTML = html;
-  wordCard.style.display = 'block';
-
-  // Обработчики
-  document.getElementById('save-current-word').addEventListener('click', () => {
-    dict.addWord({
-      word: data.word,
-      translation: data.translation,
-      explanation: data.meanings?.[0]?.definitions?.[0]?.definition || '',
-      examples: data.meanings?.[0]?.definitions?.[0]?.example ? [data.meanings[0].definitions[0].example] : [],
-      audioUrl: data.audioUrl
-    });
-    alert('Слово сохранено!');
-    renderWordsList();
-  });
-
-  if (data.audioUrl) {
-    document.getElementById('play-audio-btn').addEventListener('click', () => {
-      const audio = new Audio(data.audioUrl);
-      audio.play().catch(() => {
-        const utterance = new SpeechSynthesisUtterance(data.word);
-        utterance.lang = 'en-US';
-        speechSynthesis.speak(utterance);
-      });
-    });
-  }
-
-  // Синонимы
-  const synonyms = await getSynonyms(data.word);
-  const synContainer = document.getElementById('synonyms-container');
-  if (synonyms.length === 0) {
-    synContainer.innerHTML = '<p>Нет синонимов.</p>';
-  } else {
-    synContainer.innerHTML = synonyms.map(syn => 
-      `<span class="synonym-tag">${syn}</span>`
-    ).join('');
-  }
+  wordCardResult.querySelector('.add-to-dict').addEventListener('click', () => dict.addWord(data));
+  wordCardResult.style.display = 'block';
 }
 
-// Dictionary
 function renderWordsList() {
   const words = dict.getWords();
-  if (words.length === 0) {
+  wordsList.innerHTML = '';
+  if (!words.length) {
     emptyDict.style.display = 'block';
-    wordsList.style.display = 'none';
     return;
   }
-  
   emptyDict.style.display = 'none';
-  wordsList.style.display = 'grid';
-  wordsList.innerHTML = words.map(w => `
-    <div class="word-item">
-      <h3>${w.word}</h3>
-      <p>${w.translation || w.explanation?.substring(0, 60) + '...'}</p>
-    </div>
-  `).join('');
+
+  words.forEach(word => {
+    const item = document.createElement('div');
+    item.className = 'word-item';
+    item.innerHTML = `
+      <div class="word-item-title">${word.word}</div>
+      <div class="word-item-translation">${word.translation}</div>
+    `;
+    item.addEventListener('click', () => {
+      lookupInput.value = word.word;
+      handleLookup();
+      switchView('lookup');
+    });
+    wordsList.appendChild(item);
+  });
 }
 
-// Import/Export
 function setupImportExport() {
   exportBtn.addEventListener('click', () => {
-    const data = dict.export();
-    downloadJSON(data, 'english-dictionary.json');
+    const json = dict.export();
+    downloadJSON(json, 'dictionary.json');
   });
 
-  importBtn.addEventListener('click', () => {
-    importFile.click();
-  });
-
+  importBtn.addEventListener('click', () => importFile.click());
   importFile.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
     const reader = new FileReader();
-    reader.onload = (event) => {
-      if (dict.import(event.target.result)) {
-        alert('Словарь импортирован!');
+    reader.onload = (ev) => {
+      const success = dict.import(ev.target.result);
+      if (success) {
         renderWordsList();
+        alert('Импорт успешен!');
       } else {
-        alert('Ошибка импорта');
+        alert('Ошибка импорта.');
       }
     };
     reader.readAsText(file);
   });
 }
 
-// QR Code
 function setupQR() {
   shareQrBtn.addEventListener('click', () => {
-    const data = dict.export();
-    const qr = generateQR(data, 250);
+    const json = dict.export();
+    if (json.length > 2000) {
+      alert('Словарь слишком большой для QR. Используйте экспорт в файл.');
+      return;
+    }
     qrCode.innerHTML = '';
-    qrCode.appendChild(qr);
+    qrCode.appendChild(generateQR(json));
     qrModal.style.display = 'flex';
   });
 
@@ -222,21 +180,23 @@ function setupQR() {
   });
 }
 
-// Quiz
 function loadQuiz() {
-  quizWords = dict.getWordsDue();
-  if (quizWords.length === 0) {
-    quizStart.style.display = 'block';
+  quizWords = dict.getWordsDue().sort(() => 0.5 - Math.random());
+  if (!quizWords.length) {
     quizContainer.style.display = 'none';
+    quizStart.style.display = 'block';
     return;
   }
+
   quizStart.style.display = 'none';
   quizContainer.style.display = 'block';
+  nextQuizBtn.style.display = 'block';
+  nextQuizBtn.disabled = true;
   showNextQuizQuestion();
 }
 
 function showNextQuizQuestion() {
-  if (quizWords.length === 0) {
+  if (!quizWords.length) {
     quizQuestion.textContent = 'Тренировка завершена!';
     quizAnswers.innerHTML = '';
     nextQuizBtn.style.display = 'none';
@@ -251,9 +211,13 @@ function showNextQuizQuestion() {
   
   const allWords = dict.getWords().filter(w => w.id !== word.id);
   const wrongWords = allWords.sort(() => 0.5 - Math.random()).slice(0, 3);
+  const fallbackDef = word.meanings[0]?.definitions[0]?.definition?.substring(0, 50) || '';
   const options = [
-    { text: word.translation || word.explanation.substring(0, 50), correct: true },
-    ...wrongWords.map(w => ({ text: w.translation || w.word, correct: false }))
+    { text: word.translation || fallbackDef, correct: true },
+    ...wrongWords.map(w => {
+      const wFallback = w.meanings[0]?.definitions[0]?.definition?.substring(0, 50) || w.word;
+      return { text: w.translation || wFallback, correct: false };
+    })
   ].sort(() => 0.5 - Math.random());
   
   options.forEach(opt => {
@@ -279,9 +243,17 @@ function handleQuizAnswer(e) {
     }
   });
   
-  const grade = isCorrect ? 2 : 0;
+  const grade = isCorrect ? 2 : 0; // Can extend to hard/easy later
   dict.updateSRS(currentQuizWord.id, grade);
   nextQuizBtn.disabled = false;
+}
+
+function debounce(func, delay) {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), delay);
+  };
 }
 
 // Init
@@ -293,6 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => switchView(btn.dataset.view));
   });
   
+  lookupInput.addEventListener('input', debounce(handleLookup, 300)); // Autolookup
   lookupInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') handleLookup();
   });
