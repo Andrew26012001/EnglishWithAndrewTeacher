@@ -1,8 +1,8 @@
 {
-  "name": "LexiQwen",
-  "short_name": "LexiQwen",
-  "description": "Умный словарь с SRS и QR-шерингом",
-  "start_url": "/EnglishWithAndrewTeacher/",
+  "name": "English Dictionary",
+  "short_name": "EngDict",
+  "description": "Словарь с автопоиском, SRS и шерингом через QR",
+  "start_url": "/EnglishWithAndrewTeacher/"
   "display": "standalone",
   "background_color": "#0f0f11",
   "theme_color": "#0f0f11",
