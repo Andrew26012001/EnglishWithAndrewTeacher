@@ -3,8 +3,6 @@ import { lookupWord } from './lookup.js';
 import { downloadJSON, generateQR } from './utils.js';
 
 const dict = new Dictionary();
-let currentQuizWord = null;
-let quizWords = [];
 
 // DOM
 const themeToggle = document.getElementById('theme-toggle');
@@ -29,36 +27,37 @@ const quizAnswers = document.getElementById('quiz-answers');
 const nextQuizBtn = document.getElementById('next-quiz-btn');
 const startQuizBtn = document.getElementById('start-quiz-btn');
 
-// Theme
-const savedTheme = localStorage.getItem('theme') || 'dark';
-document.body.className = `theme-${savedTheme}`;
-themeToggle.innerHTML = `<span class="icon">${savedTheme === 'dark' ? '🌙' : '☀️'}</span>`;
+let currentQuizWord = null;
+let quizWords = [];
 
-themeToggle.addEventListener('click', () => {
+// Theme
+function initTheme() {
+  const saved = localStorage.getItem('theme') || 'dark';
+  document.body.className = `theme-${saved}`;
+  themeToggle.innerHTML = `<span class="icon">${saved === 'dark' ? '🌙' : '☀️'}</span>`;
+}
+
+function toggleTheme() {
   const isDark = document.body.classList.contains('theme-dark');
-  document.body.className = isDark ? 'theme-light' : 'theme-dark';
-  localStorage.setItem('theme', isDark ? 'light' : 'dark');
-  themeToggle.innerHTML = `<span class="icon">${isDark ? '☀️' : '🌙'}</span>`;
-});
+  const newTheme = isDark ? 'light' : 'dark';
+  document.body.className = `theme-${newTheme}`;
+  localStorage.setItem('theme', newTheme);
+  themeToggle.innerHTML = `<span class="icon">${newTheme === 'dark' ? '🌙' : '☀️'}</span>`;
+}
 
 // Navigation
-navBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    navBtns.forEach(b => b.classList.remove('active'));
-    views.forEach(v => v.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById(`${btn.dataset.view}-view`).classList.add('active');
-    
-    if (btn.dataset.view === 'dictionary') renderWordsList();
-    if (btn.dataset.view === 'quiz') loadQuiz();
-  });
-});
+function switchView(viewName) {
+  navBtns.forEach(btn => btn.classList.remove('active'));
+  views.forEach(v => v.classList.remove('active'));
+  
+  document.querySelector(`.nav-btn[data-view="${viewName}"]`).classList.add('active');
+  document.getElementById(`${viewName}-view`).classList.add('active');
+  
+  if (viewName === 'dictionary') renderWordsList();
+  if (viewName === 'quiz') loadQuiz();
+}
 
 // Lookup
-lookupInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter') handleLookup();
-});
-
 async function handleLookup() {
   const word = lookupInput.value.trim();
   if (!word) return;
@@ -90,7 +89,7 @@ function renderWordCard(data) {
   
   html += `
     <div style="margin-top: 16px;">
-      <button class="btn" onclick="saveCurrentWord(${JSON.stringify(data).replace(/'/g, "\\'")})">✅ Сохранить</button>
+      <button class="btn" onclick="saveWord(${JSON.stringify(data).replace(/'/g, "\\'")})">✅ Сохранить</button>
     </div>
   `;
   
@@ -98,8 +97,8 @@ function renderWordCard(data) {
   wordCard.style.display = 'block';
 }
 
-// Expose save function to global scope for inline onclick
-window.saveCurrentWord = (data) => {
+// Expose save function globally
+window.saveWord = (data) => {
   dict.addWord({
     word: data.word,
     translation: data.translation,
@@ -131,43 +130,47 @@ function renderWordsList() {
 }
 
 // Import/Export
-exportBtn.addEventListener('click', () => {
-  const data = dict.export();
-  downloadJSON(data, 'lexiqwen-dictionary.json');
-});
+function setupImportExport() {
+  exportBtn.addEventListener('click', () => {
+    const data = dict.export();
+    downloadJSON(data, 'lexiqwen-dictionary.json');
+  });
 
-importBtn.addEventListener('click', () => {
-  importFile.click();
-});
+  importBtn.addEventListener('click', () => {
+    importFile.click();
+  });
 
-importFile.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    if (dict.import(event.target.result)) {
-      alert('Словарь импортирован!');
-      renderWordsList();
-    } else {
-      alert('Ошибка импорта');
-    }
-  };
-  reader.readAsText(file);
-});
+  importFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (dict.import(event.target.result)) {
+        alert('Словарь импортирован!');
+        renderWordsList();
+      } else {
+        alert('Ошибка импорта');
+      }
+    };
+    reader.readAsText(file);
+  });
+}
 
 // QR Code
-shareQrBtn.addEventListener('click', () => {
-  const data = dict.export();
-  const qr = generateQR(data, 250);
-  qrCode.innerHTML = '';
-  qrCode.appendChild(qr);
-  qrModal.style.display = 'flex';
-});
+function setupQR() {
+  shareQrBtn.addEventListener('click', () => {
+    const data = dict.export();
+    const qr = generateQR(data, 250);
+    qrCode.innerHTML = '';
+    qrCode.appendChild(qr);
+    qrModal.style.display = 'flex';
+  });
 
-closeQr.addEventListener('click', () => {
-  qrModal.style.display = 'none';
-});
+  closeQr.addEventListener('click', () => {
+    qrModal.style.display = 'none';
+  });
+}
 
 // Quiz
 function loadQuiz() {
@@ -196,7 +199,6 @@ function showNextQuizQuestion() {
   quizQuestion.textContent = `Что означает "${word.word}"?`;
   quizAnswers.innerHTML = '';
   
-  // Создаём варианты: правильный + 3 случайных из словаря
   const allWords = dict.getWords().filter(w => w.id !== word.id);
   const wrongWords = allWords.sort(() => 0.5 - Math.random()).slice(0, 3);
   const options = [
@@ -227,19 +229,33 @@ function handleQuizAnswer(e) {
     }
   });
   
-  // Оценка для SRS: 2 = легко, 1 = нормально, 0 = сложно
   const grade = isCorrect ? 2 : 0;
   dict.updateSRS(currentQuizWord.id, grade);
-  
   nextQuizBtn.disabled = false;
 }
 
-nextQuizBtn.addEventListener('click', () => {
-  nextQuizBtn.disabled = true;
-  showNextQuizQuestion();
-});
-
-startQuizBtn.addEventListener('click', loadQuiz);
-
 // Init
-renderWordsList();
+document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  themeToggle.addEventListener('click', toggleTheme);
+  
+  navBtns.forEach(btn => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+  
+  lookupInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLookup();
+  });
+  
+  setupImportExport();
+  setupQR();
+  
+  nextQuizBtn.addEventListener('click', () => {
+    nextQuizBtn.disabled = true;
+    showNextQuizQuestion();
+  });
+  
+  startQuizBtn.addEventListener('click', loadQuiz);
+  
+  renderWordsList();
+});
