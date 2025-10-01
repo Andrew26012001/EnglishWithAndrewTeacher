@@ -8,7 +8,7 @@
   --shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 
-.theme-light {
+body[data-theme="light"] {
   --bg: #ffffff;
   --card-bg: #f8f9fa;
   --text: #212529;
@@ -123,6 +123,40 @@ header h1 {
   margin-bottom: 8px;
 }
 
+.section {
+  margin-bottom: 20px;
+}
+
+.section h3 {
+  color: var(--accent);
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+}
+
+.definition {
+  background: var(--border);
+  padding: 8px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.example {
+  background: var(--card-bg);
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.synonym-tag {
+  display: inline-block;
+  background: var(--border);
+  padding: 4px 8px;
+  margin: 2px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
 .actions {
   display: flex;
   gap: 12px;
@@ -140,6 +174,19 @@ header h1 {
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.save-btn {
+  background: #4CAF50;
+  color: white;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 8px;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 0.9rem;
 }
 
 .words-grid {
