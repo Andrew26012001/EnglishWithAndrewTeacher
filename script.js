@@ -1,137 +1,147 @@
-const quizData = [
-  {
-    question: "Что означает слово 'generous'?",
-    answers: [
-      { text: "Щедрый", correct: true },
-      { text: "Жадный", correct: false },
-      { text: "Скрытный", correct: false },
-      { text: "Грустный", correct: false }
-    ]
-  },
-  {
-    question: "Что означает 'benevolent'?",
-    answers: [
-      { text: "Доброжелательный", correct: true },
-      { text: "Злой", correct: false },
-      { text: "Равнодушный", correct: false },
-      { text: "Хитрый", correct: false }
-    ]
-  },
-  {
-    question: "Как перевести 'persistent'?",
-    answers: [
-      { text: "Настойчивый", correct: true },
-      { text: "Ленивый", correct: false },
-      { text: "Быстрый", correct: false },
-      { text: "Тихий", correct: false }
-    ]
+import dictionary from './dictionary.js';
+
+// DOM элементы
+const addForm = document.getElementById('add-form');
+const wordsList = document.getElementById('words-list');
+const addWordBtn = document.getElementById('add-word-btn');
+const startQuizBtn = document.getElementById('start-quiz-btn');
+const saveWordBtn = document.getElementById('save-word-btn');
+const cancelBtn = document.getElementById('cancel-btn');
+const wordModal = document.getElementById('word-modal');
+const closeModal = document.getElementById('close-modal');
+
+// Инициализация
+renderWordsList();
+
+// Кнопки
+addWordBtn.addEventListener('click', () => {
+  addForm.style.display = 'block';
+  wordsList.style.display = 'none';
+});
+
+cancelBtn.addEventListener('click', () => {
+  addForm.style.display = 'none';
+  wordsList.style.display = 'block';
+});
+
+saveWordBtn.addEventListener('click', () => {
+  const word = document.getElementById('word-input').value.trim();
+  if (!word) {
+    alert('Введите слово!');
+    return;
   }
-];
 
-let currentQuestion = 0;
-let score = 0;
-let timer;
-const TIME_LIMIT = 15;
-
-const questionEl = document.getElementById('quiz-question');
-const answersContainer = document.getElementById('quiz-answers');
-const nextBtn = document.getElementById('next-btn');
-const progressBar = document.getElementById('progress-bar');
-const resultMessage = document.getElementById('result-message');
-
-function loadQuestion() {
-  resetState();
-  const q = quizData[currentQuestion];
-  questionEl.textContent = q.question;
-
-  q.answers.forEach((answer, index) => {
-    const button = document.createElement('button');
-    button.classList.add('answer-btn');
-    button.textContent = answer.text;
-    button.dataset.correct = answer.correct;
-    button.addEventListener('click', selectAnswer);
-    answersContainer.appendChild(button);
+  const newWord = dictionary.addWord({
+    word,
+    translation: document.getElementById('translation-input').value,
+    explanation: document.getElementById('explanation-input').value,
+    examples: Array.from(document.querySelectorAll('.example-input'))
+      .map(el => el.value)
+      .filter(v => v.trim())
   });
 
-  startTimer();
+  // Сброс формы
+  document.getElementById('word-input').value = '';
+  document.getElementById('translation-input').value = '';
+  document.getElementById('explanation-input').value = '';
+  document.querySelectorAll('.example-input').forEach((el, i) => {
+    if (i === 0) el.value = '';
+    else el.remove();
+  });
+
+  addForm.style.display = 'none';
+  wordsList.style.display = 'block';
+  renderWordsList();
+});
+
+// Добавление примеров
+document.getElementById('add-example-btn').addEventListener('click', () => {
+  const container = document.getElementById('examples-container');
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'example-input';
+  input.placeholder = 'Ещё пример';
+  container.insertBefore(input, document.getElementById('add-example-btn'));
+});
+
+// Рендер списка слов
+function renderWordsList() {
+  const words = dictionary.getWords();
+  const emptyMsg = document.getElementById('empty-message');
+
+  if (words.length === 0) {
+    emptyMsg.style.display = 'block';
+    wordsList.innerHTML = '';
+    wordsList.appendChild(emptyMsg);
+    return;
+  }
+
+  emptyMsg.style.display = 'none';
+  wordsList.innerHTML = '';
+  wordsList.appendChild(emptyMsg);
+
+  words.forEach(word => {
+    const div = document.createElement('div');
+    div.className = 'word-item';
+    div.innerHTML = `
+      <strong>${word.word}</strong>
+      <span class="translation">${word.translation || '—'}</span>
+      <button class="view-btn" data-id="${word.id}">Подробнее</button>
+    `;
+    wordsList.appendChild(div);
+  });
+
+  // Обработчик просмотра
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.target.dataset.id;
+      showWordCard(id);
+    });
+  });
 }
 
-function resetState() {
-  resultMessage.textContent = '';
-  nextBtn.disabled = true;
-  nextBtn.classList.add('disabled');
-  answersContainer.innerHTML = '';
-  clearInterval(timer);
-  progressBar.style.width = '0%';
-}
+// Показ карточки слова
+function showWordCard(id) {
+  const word = dictionary.getWordById(id);
+  if (!word) return;
 
-function startTimer() {
-  let timeLeft = TIME_LIMIT;
-  progressBar.style.width = '0%';
+  document.getElementById('modal-word').textContent = word.word;
+  document.getElementById('modal-translation').textContent = word.translation || '—';
+  document.getElementById('modal-explanation').textContent = word.explanation || '—';
 
-  timer = setInterval(() => {
-    timeLeft--;
-    const progress = (timeLeft / TIME_LIMIT) * 100;
-    progressBar.style.width = `${progress}%`;
+  const examplesList = document.getElementById('modal-examples');
+  examplesList.innerHTML = '';
+  word.examples.forEach(example => {
+    const li = document.createElement('li');
+    li.textContent = example;
+    examplesList.appendChild(li);
+  });
 
-    if (timeLeft <= 0) {
-      clearInterval(timer);
-      handleTimeout();
-    }
-  }, 1000);
-}
-
-function selectAnswer(e) {
-  const selectedButton = e.target;
-  const isCorrect = selectedButton.dataset.correct === 'true';
-
-  Array.from(answersContainer.children).forEach(btn => {
-    btn.disabled = true;
-    if (btn.dataset.correct === 'true') {
-      btn.classList.add('correct');
+  document.getElementById('play-audio-btn').onclick = () => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(word.word);
+      utterance.lang = 'en-US';
+      speechSynthesis.speak(utterance);
     } else {
-      btn.classList.add('incorrect');
+      alert('Ваш браузер не поддерживает произношение.');
     }
-  });
+  };
 
-  if (isCorrect) {
-    score++;
+  wordModal.style.display = 'block';
+}
+
+closeModal.onclick = () => wordModal.style.display = 'none';
+window.onclick = (e) => {
+  if (e.target === wordModal) wordModal.style.display = 'none';
+};
+
+// Кнопка "Тренировка"
+startQuizBtn.addEventListener('click', () => {
+  const dueWords = dictionary.getWordsDueForReview();
+  if (dueWords.length === 0) {
+    alert('Нет слов для повторения! Добавьте новые слова или подождите.');
+    return;
   }
-
-  nextBtn.disabled = false;
-  nextBtn.classList.remove('disabled');
-  clearInterval(timer);
-}
-
-function handleTimeout() {
-  Array.from(answersContainer.children).forEach(btn => {
-    btn.disabled = true;
-    if (btn.dataset.correct === 'true') {
-      btn.classList.add('correct');
-    }
-  });
-  resultMessage.textContent = 'Время вышло!';
-  nextBtn.disabled = false;
-  nextBtn.classList.remove('disabled');
-}
-
-function showNextQuestion() {
-  if (currentQuestion < quizData.length - 1) {
-    currentQuestion++;
-    loadQuestion();
-  } else {
-    showResults();
-  }
-}
-
-function showResults() {
-  questionEl.textContent = '🎉 Квиз завершён!';
-  answersContainer.style.display = 'none';
-  resultMessage.textContent = `Вы ответили правильно на ${score} из ${quizData.length} вопросов.`;
-  nextBtn.style.display = 'none';
-}
-
-nextBtn.addEventListener('click', showNextQuestion);
-
-// Загружаем первый вопрос при старте
-loadQuestion();
+  // Позже: перейдём на страницу квиза или откроем модалку
+  alert(`Готово к тренировке! Слов для повторения: ${dueWords.length}`);
+});
