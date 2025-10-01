@@ -1,6 +1,6 @@
 export class Dictionary {
   constructor() {
-    this.storageKey = 'lexiqwen_dict_v1';
+    this.storageKey = 'english_dict_v1';
     this.words = [];
     this.load();
   }
@@ -74,13 +74,3 @@ export class Dictionary {
     try {
       const data = JSON.parse(jsonString);
       if (Array.isArray(data.words)) {
-        this.words = data.words;
-        this.save();
-        return true;
-      }
-    } catch (e) {
-      console.error('Import error:', e);
-    }
-    return false;
-  }
-}
