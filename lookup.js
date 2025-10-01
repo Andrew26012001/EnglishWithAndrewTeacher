@@ -1,7 +1,7 @@
-// lookup.js — модуль для поиска слова в словаре
-
 export async function lookupWord(word) {
-  if (!word || typeof word !== 'string') return null;
+  if (!word || typeof word !== 'string') {
+    throw new Error('Некорректное слово');
+  }
 
   const url = `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`;
 
@@ -15,24 +15,9 @@ export async function lookupWord(word) {
       }
     }
     const data = await response.json();
-    return data[0]; // берем первый результат
+    return data[0];
   } catch (error) {
     console.error('Ошибка поиска:', error);
     throw error;
-  }
-}
-
-// Воспроизведение аудио
-export function playAudio(audioUrl) {
-  if (audioUrl) {
-    const audio = new Audio(audioUrl);
-    audio.play().catch(e => {
-      // fallback: Web Speech API
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(wordFromContext);
-        utterance.lang = 'en-US';
-        speechSynthesis.speak(utterance);
-      }
-    });
   }
 }
