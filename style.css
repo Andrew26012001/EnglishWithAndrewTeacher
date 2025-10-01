@@ -49,7 +49,6 @@ header {
 
 header h1 {
   font-size: 1.6rem;
-  margin-bottom: 12px;
 }
 
 .btn {
@@ -88,198 +87,6 @@ header h1 {
   flex: 1;
 }
 
-/* Форма добавления */
-.form-section {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-
-.form-section h2 {
-  margin-bottom: 20px;
-  color: var(--primary);
-}
-
-.form-section input,
-.form-section textarea {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 16px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 1rem;
-}
-
-.form-section textarea {
-  min-height: 80px;
-  resize: vertical;
-}
-
-#examples-container {
-  margin-bottom: 16px;
-}
-
-#examples-container label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-}
-
-.example-input {
-  margin-bottom: 8px;
-}
-
-#add-example-btn {
-  background: #e0e0e0;
-  color: var(--dark);
-  padding: 6px 12px;
-  font-size: 0.9rem;
-}
-
-.form-buttons {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-/* Список слов */
-.words-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-#empty-message {
-  text-align: center;
-  color: var(--gray);
-  font-style: italic;
-  padding: 40px 20px;
-}
-
-.word-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-
-.word-item strong {
-  font-size: 1.2rem;
-  color: var(--primary-dark);
-}
-
-.translation {
-  color: var(--gray);
-  font-style: italic;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.view-btn {
-  background: var(--primary);
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.view-btn:hover {
-  background: var(--primary-dark);
-}
-
-/* Модальное окно */
-.modal {
-  position: fixed;
-  z-index: 100;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 500px;
-  max-height: 80vh;
-  overflow-y: auto;
-  position: relative;
-  padding: 24px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-}
-
-.close {
-  position: absolute;
-  right: 16px;
-  top: 16px;
-  font-size: 1.5rem;
-  font-weight: bold;
-  cursor: pointer;
-  color: var(--gray);
-}
-
-.close:hover {
-  color: var(--dark);
-}
-
-.modal-content h2 {
-  color: var(--primary);
-  margin-bottom: 16px;
-  font-size: 1.8rem;
-}
-
-.modal-content p {
-  margin-bottom: 12px;
-}
-
-.modal-content ul {
-  padding-left: 20px;
-  margin-bottom: 16px;
-}
-
-.modal-content li {
-  margin-bottom: 8px;
-  line-height: 1.5;
-}
-
-/* Адаптивность */
-@media (max-width: 600px) {
-  header h1 {
-    font-size: 1.4rem;
-  }
-
-  .word-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .translation {
-    max-width: 100%;
-  }
-
-  .form-buttons {
-    flex-direction: column;
-  }
-
-  .btn {
-    width: 100%;
-  }
-}
 /* Lookup section */
 .lookup-section {
   text-align: center;
@@ -291,6 +98,7 @@ header h1 {
   gap: 10px;
   margin-top: 16px;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
 .input-group input {
@@ -345,20 +153,6 @@ header h1 {
   margin-bottom: 8px;
 }
 
-.examples-list {
-  padding-left: 20px;
-  margin-top: 8px;
-}
-
-.examples-list li {
-  margin-bottom: 6px;
-}
-
-.btn-small {
-  padding: 6px 12px;
-  font-size: 0.9rem;
-}
-
 .card-actions {
   display: flex;
   gap: 12px;
@@ -371,6 +165,11 @@ header h1 {
   min-width: 120px;
 }
 
+.btn-small {
+  padding: 6px 12px;
+  font-size: 0.9rem;
+}
+
 /* Words list section */
 #words-list-section h2 {
   margin-bottom: 16px;
@@ -379,4 +178,73 @@ header h1 {
 
 #show-lookup-btn {
   margin-bottom: 20px;
+}
+
+.words-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#empty-message {
+  text-align: center;
+  color: var(--gray);
+  font-style: italic;
+  padding: 40px 20px;
+}
+
+.word-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.word-item strong {
+  font-size: 1.2rem;
+  color: var(--primary-dark);
+}
+
+.translation {
+  color: var(--gray);
+  font-style: italic;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Адаптивность */
+@media (max-width: 600px) {
+  header h1 {
+    font-size: 1.4rem;
+  }
+
+  .input-group input {
+    min-width: 150px;
+    font-size: 0.9rem;
+    padding: 10px;
+  }
+
+  .word-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .translation {
+    max-width: 100%;
+  }
+
+  .card-actions,
+  .form-buttons {
+    flex-direction: column;
+  }
+
+  .btn {
+    width: 100%;
+  }
 }
