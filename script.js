@@ -29,6 +29,7 @@ const startQuizBtn = document.getElementById('start-quiz-btn');
 
 let currentQuizWord = null;
 let quizWords = [];
+let currentWordData = null; // ← для хранения данных слова
 
 // Theme — используем data-theme
 function initTheme() {
@@ -75,7 +76,10 @@ async function handleLookup() {
   }
 }
 
+// ИСПРАВЛЕНО: Без onclick, через замыкание
 function renderWordCard(data) {
+  currentWordData = data; // сохраняем данные
+  
   let html = `<h2>${data.word}</h2>`;
   if (data.phonetic) html += `<p>[${data.phonetic}]</p>`;
   if (data.translation) html += `<p><strong>RU:</strong> ${data.translation}</p>`;
@@ -89,26 +93,26 @@ function renderWordCard(data) {
   
   html += `
     <div style="margin-top: 16px;">
-      <button class="btn" onclick="saveWord(${JSON.stringify(data).replace(/'/g, "\\'")})">✅ Сохранить</button>
+      <button id="save-current-word" class="btn">✅ Сохранить</button>
     </div>
   `;
   
   wordCard.innerHTML = html;
   wordCard.style.display = 'block';
-}
-
-// Expose save function globally
-window.saveWord = (data) => {
-  dict.addWord({
-    word: data.word,
-    translation: data.translation,
-    explanation: data.meanings?.[0]?.definitions?.[0]?.definition || '',
-    examples: data.meanings?.[0]?.definitions?.[0]?.example ? [data.meanings[0].definitions[0].example] : [],
-    audioUrl: data.audioUrl
+  
+  // Назначаем обработчик после вставки в DOM
+  document.getElementById('save-current-word').addEventListener('click', () => {
+    dict.addWord({
+      word: currentWordData.word,
+      translation: currentWordData.translation,
+      explanation: currentWordData.meanings?.[0]?.definitions?.[0]?.definition || '',
+      examples: currentWordData.meanings?.[0]?.definitions?.[0]?.example ? [currentWordData.meanings[0].definitions[0].example] : [],
+      audioUrl: currentWordData.audioUrl
+    });
+    alert('Слово сохранено!');
+    renderWordsList();
   });
-  alert('Слово сохранено!');
-  renderWordsList();
-};
+}
 
 // Dictionary
 function renderWordsList() {
