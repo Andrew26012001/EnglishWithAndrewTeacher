@@ -196,4 +196,66 @@ function showNextQuizQuestion() {
   const word = quizWords.shift();
   currentQuizWord = word;
   
-  quizQuestion.textContent = `Что означает "${word.word}"
+  quizQuestion.textContent = `Что означает "${word.word}"?`;
+  quizAnswers.innerHTML = '';
+  
+  const allWords = dict.getWords().filter(w => w.id !== word.id);
+  const wrongWords = allWords.sort(() => 0.5 - Math.random()).slice(0, 3);
+  const options = [
+    { text: word.translation || word.explanation.substring(0, 50), correct: true },
+    ...wrongWords.map(w => ({ text: w.translation || w.word, correct: false }))
+  ].sort(() => 0.5 - Math.random());
+  
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.textContent = opt.text;
+    btn.dataset.correct = opt.correct;
+    btn.addEventListener('click', handleQuizAnswer);
+    quizAnswers.appendChild(btn);
+  });
+}
+
+function handleQuizAnswer(e) {
+  const isCorrect = e.target.dataset.correct === 'true';
+  const buttons = document.querySelectorAll('.answer-btn');
+  
+  buttons.forEach(btn => {
+    btn.disabled = true;
+    if (btn.dataset.correct === 'true') {
+      btn.classList.add('correct');
+    } else if (btn === e.target && !isCorrect) {
+      btn.classList.add('incorrect');
+    }
+  });
+  
+  const grade = isCorrect ? 2 : 0;
+  dict.updateSRS(currentQuizWord.id, grade);
+  nextQuizBtn.disabled = false;
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  themeToggle.addEventListener('click', toggleTheme);
+  
+  navBtns.forEach(btn => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+  
+  lookupInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLookup();
+  });
+  
+  setupImportExport();
+  setupQR();
+  
+  nextQuizBtn.addEventListener('click', () => {
+    nextQuizBtn.disabled = true;
+    showNextQuizQuestion();
+  });
+  
+  startQuizBtn.addEventListener('click', loadQuiz);
+  
+  renderWordsList();
+});
