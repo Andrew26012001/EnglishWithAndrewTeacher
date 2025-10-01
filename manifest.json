@@ -1,7 +1,7 @@
 {
   "name": "English Dictionary",
   "short_name": "EngDict",
-  "description": "Словарь с автопоиском, SRS и шерингом через QR. Поддержка фразовых глаголов.",
+  "description": "Словарь с поиском, SRS и шерингом через QR. Поддержка фразовых глаголов.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f0f11",
