@@ -1,7 +1,7 @@
 {
-  "name": "WordQuiz",
-  "short_name": "WordQuiz",
-  "description": "Интерактивный квиз для изучения английских слов",
+  "name": "My Dictionary",
+  "short_name": "Dict",
+  "description": "Умный словарь с автоматическим поиском и сохранением слов",
   "start_url": "/EnglishWithAndrewTeacher/",
   "display": "standalone",
   "background_color": "#ffffff",
