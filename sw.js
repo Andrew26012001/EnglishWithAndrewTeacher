@@ -1,4 +1,4 @@
-const CACHE = 'lexiqwen-v1';
+const CACHE = 'english-dict-v1';
 const urls = ['/', '/index.html', '/style.css', '/script.js', '/dictionary.js', '/lookup.js', '/utils.js'];
 
 self.addEventListener('install', e => {
