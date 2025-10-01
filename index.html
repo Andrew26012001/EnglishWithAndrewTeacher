@@ -1,75 +1,82 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css" />
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0f0f11" />
-  <title>English Dictionary</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="stylesheet" href="./style.css" />
+<link rel="manifest" href="./manifest.json" />
+<meta name="theme-color" content="#0f0f11" />
+<title>English Dictionary</title>
 </head>
 <body>
-  <div class="app-container">
-    <header>
-      <h1>📘 English Dictionary</h1>
-      <button id="theme-toggle" class="btn-icon" aria-label="Сменить тему">
-        <span class="icon">🌙</span>
-      </button>
-    </header>
+<div class="app-container">
+<header>
+<h1>📘 English Dictionary</h1>
+<div style="display:flex;gap:8px;align-items:center;">
+<button id="theme-toggle" class="btn-icon" aria-label="Сменить тему"><span class="icon">🌙</span></button>
+<button id="sw-status" class="btn-icon" title="Service Worker status" aria-hidden="true">⚡</button>
+</div>
+</header>
 
-    <main class="content">
-      <nav class="main-nav">
-        <button class="nav-btn active" data-view="lookup">🔍 Слово</button>
-        <button class="nav-btn" data-view="dictionary">📚 Словарь</button>
-        <button class="nav-btn" data-view="quiz">🎮 Тренировка</button>
-      </nav>
 
-      <!-- Поиск -->
-      <section id="lookup-view" class="view active">
-        <input type="text" id="lookup-input" placeholder="Введите слово (например: generous)" autocomplete="off">
-        <div id="lookup-loader" class="loader" style="display: none;">Загрузка...</div>
-        <div id="word-card-result" class="card" style="display: none;"></div>
-      </section>
+<main class="content">
+<nav class="main-nav" role="navigation" aria-label="Главная навигация">
+<button class="nav-btn active" data-view="lookup">🔍 Слово</button>
+<button class="nav-btn" data-view="dictionary">📚 Словарь</button>
+<button class="nav-btn" data-view="quiz">🎮 Тренировка</button>
+</nav>
 
-      <!-- Словарь -->
-      <section id="dictionary-view" class="view">
-        <div class="actions">
-          <button id="export-btn" class="btn">📤 Экспорт</button>
-          <button id="import-btn" class="btn">📥 Импорт</button>
-          <input type="file" id="import-file" accept=".json" style="display: none;">
-          <button id="share-qr-btn" class="btn">🔗 QR-код</button>
-        </div>
-        <div id="words-list" class="words-grid"></div>
-        <p id="empty-dict" class="empty-state">Словарь пуст.</p>
-      </section>
 
-      <!-- Квиз -->
-      <section id="quiz-view" class="view">
-        <div id="quiz-container" style="display: none;">
-          <div class="progress-bar-container">
-            <div class="progress-bar" id="quiz-progress-bar"></div>
-          </div>
-          <h2 id="quiz-question"></h2>
-          <div id="quiz-answers" class="answers-grid"></div>
-          <button id="next-quiz-btn" class="btn" disabled>Далее</button>
-        </div>
-        <div id="quiz-start" class="empty-state">
-          <p>Нет слов для повторения.</p>
-          <button id="start-quiz-btn" class="btn">🔄 Обновить</button>
-        </div>
-      </section>
+<!-- Lookup -->
+<section id="lookup-view" class="view active" aria-live="polite">
+<input id="lookup-input" type="text" placeholder="Введите слово или фразу (например: look forward to, get out)" autocomplete="off" aria-label="Поиск слова">
+<div id="lookup-loader" class="loader" aria-hidden="true" style="display:none">Загрузка...</div>
+<div id="word-card-result" class="card" style="display:none;"></div>
+</section>
 
-      <!-- QR Modal -->
-      <div id="qr-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-          <h3>Поделитесь словарём</h3>
-          <div id="qr-code"></div>
-          <button id="close-qr" class="btn">Закрыть</button>
-        </div>
-      </div>
-    </main>
-  </div>
 
-  <script type="module" src="script.js"></script>
+<!-- Dictionary -->
+<section id="dictionary-view" class="view" aria-live="polite">
+<div class="actions">
+<button id="export-btn" class="btn">📤 Экспорт</button>
+<button id="import-btn" class="btn">📥 Импорт</button>
+<input type="file" id="import-file" accept=".json,application/json" style="display:none">
+<button id="share-qr-btn" class="btn">🔗 QR-код</button>
+</div>
+<div id="words-list" class="words-grid" role="list"></div>
+<p id="empty-dict" class="empty-state">Словарь пуст.</p>
+</section>
+
+
+<!-- Quiz -->
+<section id="quiz-view" class="view" aria-live="polite">
+<div id="quiz-container" style="display:none;">
+<div class="progress-bar-container" aria-hidden="true">
+<div class="progress-bar" id="quiz-progress-bar"></div>
+</div>
+<h2 id="quiz-question"></h2>
+<div id="quiz-answers" class="answers-grid" role="list"></div>
+<button id="next-quiz-btn" class="btn" disabled>Далее</button>
+</div>
+<div id="quiz-start" class="empty-state">
+<p>Нет слов для повторения.</p>
+<button id="start-quiz-btn" class="btn">🔄 Обновить</button>
+</div>
+</section>
+
+
+<!-- QR Modal -->
+<div id="qr-modal" class="modal" style="display:none;" role="dialog" aria-modal="true" aria-hidden="true">
+<div class="modal-content">
+<h3>Поделитесь словарём</h3>
+<div id="qr-code" style="margin:12px 0"></div>
+<button id="close-qr" class="btn">Закрыть</button>
+</div>
+</div>
+
+
+</main>
+</div>
+<script type="module" src="./script.js"></script>
 </body>
 </html>
