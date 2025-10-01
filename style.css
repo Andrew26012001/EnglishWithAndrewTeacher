@@ -1,249 +1,293 @@
-/* Сброс и базовые стили */
+/* Qwen Night Theme */
+:root {
+  --bg: #0f0f11;
+  --card-bg: #1a1a1d;
+  --text: #e0e0e0;
+  --text-secondary: #a0a0a6;
+  --accent: #64ffda;
+  --accent-hover: #4de2c0;
+  --border: #2d2d33;
+  --success: #4CAF50;
+  --error: #f44336;
+  --shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --card-bg: #f8f9fa;
+  --text: #212529;
+  --text-secondary: #6c757d;
+  --border: #dee2e6;
+  --shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-:root {
-  --primary: #4CAF50;
-  --primary-dark: #388E3C;
-  --danger: #f44336;
-  --light: #f8f9fa;
-  --dark: #333;
-  --gray: #6c757d;
-  --border: #dee2e6;
-  --shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
-  color: var(--dark);
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, Roboto, sans-serif;
   line-height: 1.6;
-  padding: 0;
-  margin: 0;
   min-height: 100vh;
 }
 
 .app-container {
   max-width: 800px;
   margin: 0 auto;
-  background: white;
   min-height: 100vh;
-  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
 }
 
 /* Header */
 header {
-  background: var(--primary);
-  color: white;
-  padding: 16px;
-  text-align: center;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-header h1 {
-  font-size: 1.6rem;
-}
-
-.btn {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: inline-block;
-  text-align: center;
-  text-decoration: none;
-}
-
-.btn-primary {
-  background: var(--primary);
-  color: white;
-}
-
-.btn-primary:hover {
-  background: var(--primary-dark);
-}
-
-.btn:not(.btn-primary) {
-  background: #e9ecef;
-  color: var(--dark);
-}
-
-.btn:not(.btn-primary):hover {
-  background: #dee2e6;
-}
-
-/* Контент */
-.content {
-  padding: 20px;
-  flex: 1;
-}
-
-/* Lookup section */
-.lookup-section {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.input-group {
-  display: flex;
-  gap: 10px;
-  margin-top: 16px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.input-group input {
-  flex: 1;
-  min-width: 200px;
-  padding: 12px;
-  font-size: 1rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-
-.loader {
-  margin-top: 16px;
-  color: var(--gray);
-  font-style: italic;
-}
-
-/* Word card result */
-.word-card {
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 30px;
-  box-shadow: var(--shadow);
-}
-
-.word-card h2 {
-  color: var(--primary);
-  margin-bottom: 8px;
-}
-
-.word-card p {
-  margin-bottom: 12px;
-  line-height: 1.6;
-}
-
-.meaning-block {
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px dashed #eee;
-}
-
-.meaning-block:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.meaning-block h4 {
-  color: var(--primary-dark);
-  margin-bottom: 8px;
-}
-
-.card-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-  flex-wrap: wrap;
-}
-
-.card-actions .btn {
-  flex: 1;
-  min-width: 120px;
-}
-
-.btn-small {
-  padding: 6px 12px;
-  font-size: 0.9rem;
-}
-
-/* Words list section */
-#words-list-section h2 {
-  margin-bottom: 16px;
-  color: var(--dark);
-}
-
-#show-lookup-btn {
-  margin-bottom: 20px;
-}
-
-.words-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-#empty-message {
-  text-align: center;
-  color: var(--gray);
-  font-style: italic;
-  padding: 40px 20px;
-}
-
-.word-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 16px 20px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+header h1 {
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 1.4rem;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.btn-icon:hover {
+  background: var(--border);
+}
+
+/* Navigation */
+.main-nav {
+  display: flex;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-btn {
+  flex: 1;
+  padding: 14px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-btn.active,
+.nav-btn:hover {
+  color: var(--accent);
+  background: var(--border);
+}
+
+/* Views */
+.view {
+  display: none;
+  padding: 20px;
+}
+
+.view.active {
+  display: block;
+}
+
+/* Lookup */
+#lookup-input {
+  width: 100%;
+  padding: 14px;
+  background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  color: var(--text);
+  font-size: 1.1rem;
+  margin-bottom: 20px;
 }
 
-.word-item strong {
-  font-size: 1.2rem;
-  color: var(--primary-dark);
+#lookup-input::placeholder {
+  color: var(--text-secondary);
 }
 
-.translation {
-  color: var(--gray);
-  font-style: italic;
-  max-width: 200px;
+/* Card */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+
+.card h2 {
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.card p {
+  margin-bottom: 10px;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  flex: 1;
+  min-width: 100px;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn:hover {
+  background: var(--accent-hover);
+}
+
+/* Words Grid */
+.words-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.word-item {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.word-item h3 {
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+/* Quiz */
+#quiz-question {
+  text-align: center;
+  margin-bottom: 24px;
+  font-size: 1.3rem;
+}
+
+.answers-grid {
+  display: grid;
+  gap: 12px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.answer-btn {
+  padding: 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.answer-btn:hover {
+  border-color: var(--accent);
+}
+
+.answer-btn.correct {
+  background: var(--success);
+  color: white;
+}
+
+.answer-btn.incorrect {
+  background: var(--error);
+  color: white;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  margin-bottom: 30px;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-/* Адаптивность */
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 40px 20px;
+}
+
+/* Modal */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--card-bg);
+  padding: 24px;
+  border-radius: 16px;
+  max-width: 90%;
+  width: 350px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+
+/* Loader */
+.loader {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* Responsive */
 @media (max-width: 600px) {
-  header h1 {
-    font-size: 1.4rem;
-  }
-
-  .input-group input {
-    min-width: 150px;
-    font-size: 0.9rem;
-    padding: 10px;
-  }
-
-  .word-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .translation {
-    max-width: 100%;
-  }
-
-  .card-actions,
-  .form-buttons {
+  .actions {
     flex-direction: column;
   }
-
+  
   .btn {
     width: 100%;
   }
