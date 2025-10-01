@@ -66,11 +66,6 @@ export class Dictionary {
     this.save();
   }
 
-  clear() {
-    this.words = [];
-    this.save();
-  }
-
   export() {
     return JSON.stringify({ words: this.words }, null, 2);
   }
