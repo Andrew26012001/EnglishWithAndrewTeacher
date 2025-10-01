@@ -280,3 +280,103 @@ header h1 {
     width: 100%;
   }
 }
+/* Lookup section */
+.lookup-section {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.input-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.input-group input {
+  flex: 1;
+  min-width: 200px;
+  padding: 12px;
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.loader {
+  margin-top: 16px;
+  color: var(--gray);
+  font-style: italic;
+}
+
+/* Word card result */
+.word-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 30px;
+  box-shadow: var(--shadow);
+}
+
+.word-card h2 {
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+
+.word-card p {
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.meaning-block {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed #eee;
+}
+
+.meaning-block:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.meaning-block h4 {
+  color: var(--primary-dark);
+  margin-bottom: 8px;
+}
+
+.examples-list {
+  padding-left: 20px;
+  margin-top: 8px;
+}
+
+.examples-list li {
+  margin-bottom: 6px;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 0.9rem;
+}
+
+.card-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.card-actions .btn {
+  flex: 1;
+  min-width: 120px;
+}
+
+/* Words list section */
+#words-list-section h2 {
+  margin-bottom: 16px;
+  color: var(--dark);
+}
+
+#show-lookup-btn {
+  margin-bottom: 20px;
+}
