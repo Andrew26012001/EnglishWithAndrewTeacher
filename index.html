@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#4CAF50" />
+  <title>WordQuiz</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <h1>🧠 WordQuiz</h1>
+    </header>
+
+    <main class="quiz-section">
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+
+      <h2 id="quiz-question">Загрузка...</h2>
+
+      <div id="quiz-answers" class="answers-grid"></div>
+
+      <div id="result-message" class="result-message"></div>
+
+      <button id="next-btn" class="btn btn-primary" disabled>Далее</button>
+    </main>
+
+    <footer>
+      <p>© 2025 • Учись играя!</p>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
