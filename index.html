@@ -1,48 +1,74 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Умный словарь с SRS и QR-шерингом">
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#4CAF50" />
-  <title>Мой словарь</title>
+  <meta name="theme-color" content="#0f0f11" />
+  <title>LexiQwen</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="theme-dark">
   <div class="app-container">
+    <!-- Темный/светлый переключатель -->
     <header>
-      <h1>📚 Мой словарь</h1>
+      <h1>🧠 LexiQwen</h1>
+      <button id="theme-toggle" class="btn-icon" aria-label="Сменить тему">
+        <span class="icon">🌙</span>
+      </button>
     </header>
 
     <main class="content">
+      <!-- Главное меню -->
+      <nav class="main-nav">
+        <button class="nav-btn active" data-view="lookup">🔍 Слово</button>
+        <button class="nav-btn" data-view="dictionary">📚 Словарь</button>
+        <button class="nav-btn" data-view="quiz">🎮 Тренировка</button>
+      </nav>
+
       <!-- Поиск слова -->
-      <div class="lookup-section">
-        <h2>🔍 Найдите слово</h2>
-        <div class="input-group">
-          <input type="text" id="lookup-input" placeholder="Введите английское слово (например: generous)" autocomplete="off">
-          <button id="lookup-btn" class="btn btn-primary">Найти</button>
-        </div>
+      <section id="lookup-view" class="view active">
+        <input type="text" id="lookup-input" placeholder="Введите слово (например: generous)" autocomplete="off">
         <div id="lookup-loader" class="loader" style="display: none;">Загрузка...</div>
-      </div>
+        <div id="word-card-result" class="card" style="display: none;"></div>
+      </section>
 
-      <!-- Результат поиска -->
-      <div id="word-card-result" class="word-card" style="display: none;">
-        <h2 id="result-word"></h2>
-        <p id="result-phonetic"></p>
-        <button id="result-audio-btn" class="btn btn-small" style="display: none;">🔊 Произношение</button>
-        <div id="result-meanings"></div>
-        <div class="card-actions">
-          <button id="save-word-btn" class="btn btn-primary">✅ Сохранить в словарь</button>
-          <button id="copy-card-btn" class="btn">📋 Скопировать</button>
+      <!-- Словарь -->
+      <section id="dictionary-view" class="view">
+        <div class="actions">
+          <button id="export-btn" class="btn">📤 Экспорт</button>
+          <button id="import-btn" class="btn">📥 Импорт</button>
+          <input type="file" id="import-file" accept=".json" style="display: none;">
+          <button id="share-qr-btn" class="btn">🔗 QR-код</button>
         </div>
-      </div>
+        <div id="words-list" class="words-grid"></div>
+        <p id="empty-dict" class="empty-state">Словарь пуст. Добавьте первое слово!</p>
+      </section>
 
-      <!-- Список слов -->
-      <div id="words-list-section">
-        <h2>Мой словарь (<span id="words-count">0</span>)</h2>
-        <button id="show-lookup-btn" class="btn">+ Новое слово</button>
-        <div id="words-list" class="words-list">
-          <p id="empty-message">Словарь пуст.</p>
+      <!-- Квиз -->
+      <section id="quiz-view" class="view">
+        <div id="quiz-container" style="display: none;">
+          <div class="progress-bar-container">
+            <div class="progress-bar" id="quiz-progress-bar"></div>
+          </div>
+          <h2 id="quiz-question"></h2>
+          <div id="quiz-answers" class="answers-grid"></div>
+          <button id="next-quiz-btn" class="btn" disabled>Далее</button>
+        </div>
+        <div id="quiz-start" class="empty-state">
+          <p>Нет слов для повторения.</p>
+          <button id="start-quiz-btn" class="btn">🔄 Обновить</button>
+        </div>
+      </section>
+
+      <!-- Модальные окна -->
+      <div id="qr-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+          <h3>Поделитесь своим словарём</h3>
+          <div id="qr-code"></div>
+          <p>Отсканируйте QR-код, чтобы импортировать словарь на другом устройстве.</p>
+          <button id="close-qr" class="btn">Закрыть</button>
         </div>
       </div>
     </main>
