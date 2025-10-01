@@ -1,71 +1,91 @@
-class Dictionary {
+export class Dictionary {
   constructor() {
-    this.storageKey = 'wordDictionary_v2';
+    this.storageKey = 'lexiqwen_dict_v1';
     this.words = [];
-    this.loadFromStorage();
+    this.load();
   }
 
-  loadFromStorage() {
-    const data = localStorage.getItem(this.storageKey);
-    if (data) {
-      try {
-        const parsed = JSON.parse(data);
-        this.words = Array.isArray(parsed.words) ? parsed.words : [];
-      } catch (e) {
-        console.error('Ошибка загрузки словаря', e);
-        this.words = [];
-      }
+  load() {
+    try {
+      const data = localStorage.getItem(this.storageKey);
+      this.words = data ? JSON.parse(data) : [];
+    } catch (e) {
+      this.words = [];
     }
   }
 
-  saveToStorage() {
-    const data = { words: this.words };
-    localStorage.setItem(this.storageKey, JSON.stringify(data));
+  save() {
+    localStorage.setItem(this.storageKey, JSON.stringify(this.words));
   }
 
   addWord(wordData) {
+    const now = Date.now();
     const word = {
-      id: this.generateId(),
-      word: wordData.word.trim(),
-      explanation: wordData.explanation?.trim() || '',
-      examples: Array.isArray(wordData.examples) 
-        ? wordData.examples.map(e => e.trim()).filter(e => e) 
-        : [],
-      audioUrl: wordData.audioUrl?.trim() || '',
-      createdAt: Date.now(),
-      nextReview: Date.now(),
+      id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+      ...wordData,
+      createdAt: now,
+      nextReview: now,
       interval: 0,
       ease: 2.5,
       repetitions: 0
     };
-
     this.words.push(word);
-    this.saveToStorage();
-    return word;
+    this.save();
   }
 
   getWords() {
     return [...this.words];
   }
 
-  getWordById(id) {
-    return this.words.find(w => w.id === id);
-  }
-
-  deleteWord(id) {
-    this.words = this.words.filter(w => w.id !== id);
-    this.saveToStorage();
-  }
-
-  getWordsDueForReview() {
+  getWordsDue() {
     const now = Date.now();
-    return this.words.filter(word => word.nextReview <= now);
+    return this.words.filter(w => w.nextReview <= now);
   }
 
-  generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  updateSRS(id, grade) {
+    const word = this.words.find(w => w.id === id);
+    if (!word) return;
+
+    const day = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    if (grade === 0) {
+      word.interval = 1;
+      word.ease = Math.max(1.3, word.ease - 0.2);
+      word.repetitions = 0;
+    } else {
+      if (word.repetitions === 0) word.interval = 1;
+      else if (word.repetitions === 1) word.interval = 6;
+      else word.interval = Math.round(word.interval * word.ease);
+      
+      if (grade === 2) word.ease += 0.1;
+      word.repetitions += 1;
+    }
+
+    word.nextReview = now + word.interval * day;
+    this.save();
+  }
+
+  clear() {
+    this.words = [];
+    this.save();
+  }
+
+  export() {
+    return JSON.stringify({ words: this.words }, null, 2);
+  }
+
+  import(jsonString) {
+    try {
+      const data = JSON.parse(jsonString);
+      if (Array.isArray(data.words)) {
+        this.words = data.words;
+        this.save();
+        return true;
+      }
+    } catch (e) {
+      console.error('Import error:', e);
+    }
+    return false;
   }
 }
-
-const dictionary = new Dictionary();
-export default dictionary;
