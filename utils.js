@@ -1,4 +1,3 @@
-// Экспорт в файл
 export function downloadJSON(data, filename) {
   const blob = new Blob([data], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -11,7 +10,6 @@ export function downloadJSON(data, filename) {
   URL.revokeObjectURL(url);
 }
 
-// Генерация QR-кода через Google Charts (без библиотек)
 export function generateQR(text, size = 200) {
   const container = document.createElement('div');
   const img = document.createElement('img');
