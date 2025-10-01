@@ -19,6 +19,9 @@ export class Dictionary {
   }
 
   addWord(wordData) {
+    const existing = this.words.find(w => w.word.toLowerCase() === wordData.word.toLowerCase());
+    if (existing) return; // Prevent duplicates
+
     const now = Date.now();
     const word = {
       id: Date.now().toString(36) + Math.random().toString(36).substr(2),
@@ -49,7 +52,7 @@ export class Dictionary {
     const day = 24 * 60 * 60 * 1000;
     const now = Date.now();
 
-    if (grade === 0) {
+    if (grade <= 0) { // Wrong or hard wrong
       word.interval = 1;
       word.ease = Math.max(1.3, word.ease - 0.2);
       word.repetitions = 0;
@@ -58,7 +61,7 @@ export class Dictionary {
       else if (word.repetitions === 1) word.interval = 6;
       else word.interval = Math.round(word.interval * word.ease);
       
-      if (grade === 2) word.ease += 0.1;
+      word.ease += (grade === 2 ? 0.15 : 0); // +0.15 for easy, 0 for hard correct
       word.repetitions += 1;
     }
 
@@ -74,7 +77,12 @@ export class Dictionary {
     try {
       const data = JSON.parse(jsonString);
       if (Array.isArray(data.words)) {
-        this.words = data.words;
+        // Merge: add new, skip duplicates
+        data.words.forEach(newWord => {
+          if (!this.words.find(w => w.word.toLowerCase() === newWord.word.toLowerCase())) {
+            this.words.push(newWord);
+          }
+        });
         this.save();
         return true;
       }
