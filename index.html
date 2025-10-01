@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#0f0f11" />
   <title>English Dictionary</title>
 </head>
-<body class="theme-dark">
+<body>
   <div class="app-container">
     <header>
       <h1>📘 English Dictionary</h1>
@@ -24,12 +24,14 @@
         <button class="nav-btn" data-view="quiz">🎮 Тренировка</button>
       </nav>
 
+      <!-- Поиск -->
       <section id="lookup-view" class="view active">
         <input type="text" id="lookup-input" placeholder="Введите слово (например: generous)" autocomplete="off">
         <div id="lookup-loader" class="loader" style="display: none;">Загрузка...</div>
         <div id="word-card-result" class="card" style="display: none;"></div>
       </section>
 
+      <!-- Словарь -->
       <section id="dictionary-view" class="view">
         <div class="actions">
           <button id="export-btn" class="btn">📤 Экспорт</button>
@@ -41,6 +43,7 @@
         <p id="empty-dict" class="empty-state">Словарь пуст.</p>
       </section>
 
+      <!-- Квиз -->
       <section id="quiz-view" class="view">
         <div id="quiz-container" style="display: none;">
           <div class="progress-bar-container">
@@ -56,6 +59,7 @@
         </div>
       </section>
 
+      <!-- QR Modal -->
       <div id="qr-modal" class="modal" style="display: none;">
         <div class="modal-content">
           <h3>Поделитесь словарём</h3>
