@@ -28,6 +28,7 @@ const navBtns = document.querySelectorAll('.nav-btn');
 
 let currentQuizWord = null;
 let quizWords = [];
+let currentQuery = '';
 
 function initTheme() {
   if (localStorage.getItem('theme') === 'light') {
@@ -55,19 +56,27 @@ function switchView(view) {
 
 async function handleLookup() {
   const word = lookupInput.value.trim();
-  if (!word) return;
+  if (!word || word.length < 3) { // Min length to avoid partial searches
+    wordCardResult.style.display = 'none';
+    return;
+  }
 
+  currentQuery = word;
   lookupLoader.style.display = 'block';
   wordCardResult.style.display = 'none';
 
   try {
     const data = await lookupWord(word);
+    if (currentQuery !== lookupInput.value.trim()) return; // Ignore if input changed
     renderWordCard(data);
   } catch (error) {
+    if (currentQuery !== lookupInput.value.trim()) return; // Ignore if input changed
     wordCardResult.innerHTML = `<p style="color: red;">${error.message}</p>`;
     wordCardResult.style.display = 'block';
   } finally {
-    lookupLoader.style.display = 'none';
+    if (currentQuery === lookupInput.value.trim()) { // Only hide loader for current
+      lookupLoader.style.display = 'none';
+    }
   }
 }
 
@@ -265,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => switchView(btn.dataset.view));
   });
   
-  lookupInput.addEventListener('input', debounce(handleLookup, 300)); // Autolookup
+  lookupInput.addEventListener('input', debounce(handleLookup, 500)); // Increased debounce
   lookupInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') handleLookup();
   });
