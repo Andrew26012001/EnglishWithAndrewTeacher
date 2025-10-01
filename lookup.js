@@ -36,7 +36,7 @@ export async function lookupWord(word) {
     };
   } catch (error) {
     console.error('Lookup error:', error);
-    throw new Error('Не удалось найти слово.');
+    throw new Error('Не удалось найти слово или фразу.');
   }
 }
 
