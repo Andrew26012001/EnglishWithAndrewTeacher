@@ -1,23 +1,25 @@
 export async function lookupWord(word) {
-  if (!word || typeof word !== 'string') {
-    throw new Error('Некорректное слово');
-  }
+  if (!word?.trim()) throw new Error('Empty word');
+  
+  const cleanWord = word.trim().toLowerCase();
+  
+  // Dictionary API
+  const dictRes = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`);
+  if (!dictRes.ok) throw new Error('Word not found');
+  
+  const dictData = await dictRes.json();
+  const entry = dictData[0];
+  
+  // Translate via Google (unofficial)
+  const transRes = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q=${encodeURIComponent(cleanWord)}`);
+  const transData = await transRes.json();
+  const translation = transData?.[0]?.[0]?.[0] || '';
 
-  const url = `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`;
-
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('Слово не найдено');
-      } else {
-        throw new Error('Ошибка сети');
-      }
-    }
-    const data = await response.json();
-    return data[0];
-  } catch (error) {
-    console.error('Ошибка поиска:', error);
-    throw error;
-  }
+  return {
+    word: entry.word,
+    phonetic: entry.phonetic || '',
+    audioUrl: entry.phonetics?.find(p => p.audio)?.audio || '',
+    translation,
+    meanings: entry.meanings || []
+  };
 }
