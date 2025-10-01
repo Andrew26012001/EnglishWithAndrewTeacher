@@ -90,10 +90,15 @@ h1 {
   display: block;
 }
 
-input[type="text"] {
-  width: 100%;
-  padding: 12px;
+.search-container {
+  display: flex;
+  gap: 8px;
   margin-bottom: 16px;
+}
+
+input[type="text"] {
+  flex: 1;
+  padding: 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--card-bg);
@@ -310,4 +315,6 @@ input[type="text"] {
 @media (max-width: 600px) {
   .actions { flex-direction: column; }
   .btn { width: 100%; }
+  .search-container { flex-direction: column; }
+  .search-container .btn { width: 100%; }
 }
