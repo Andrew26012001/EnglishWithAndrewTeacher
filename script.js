@@ -1,147 +1,159 @@
 import dictionary from './dictionary.js';
+import { lookupWord } from './lookup.js';
 
-// DOM элементы
-const addForm = document.getElementById('add-form');
-const wordsList = document.getElementById('words-list');
-const addWordBtn = document.getElementById('add-word-btn');
-const startQuizBtn = document.getElementById('start-quiz-btn');
+// DOM
+const lookupInput = document.getElementById('lookup-input');
+const lookupBtn = document.getElementById('lookup-btn');
+const loader = document.getElementById('lookup-loader');
+const wordCard = document.getElementById('word-card-result');
+const wordsListSection = document.getElementById('words-list-section');
+const showLookupBtn = document.getElementById('show-lookup-btn');
 const saveWordBtn = document.getElementById('save-word-btn');
-const cancelBtn = document.getElementById('cancel-btn');
-const wordModal = document.getElementById('word-modal');
-const closeModal = document.getElementById('close-modal');
+const copyCardBtn = document.getElementById('copy-card-btn');
+
+let currentWordData = null;
 
 // Инициализация
 renderWordsList();
 
-// Кнопки
-addWordBtn.addEventListener('click', () => {
-  addForm.style.display = 'block';
-  wordsList.style.display = 'none';
-});
+// Поиск слова
+async function handleLookup() {
+  const word = lookupInput.value.trim();
+  if (!word) return;
 
-cancelBtn.addEventListener('click', () => {
-  addForm.style.display = 'none';
-  wordsList.style.display = 'block';
-});
+  loader.style.display = 'block';
+  wordCard.style.display = 'none';
+  wordsListSection.style.display = 'none';
 
-saveWordBtn.addEventListener('click', () => {
-  const word = document.getElementById('word-input').value.trim();
-  if (!word) {
-    alert('Введите слово!');
-    return;
+  try {
+    const data = await lookupWord(word);
+    renderWordCard(data);
+    currentWordData = data;
+  } catch (error) {
+    alert(error.message || 'Не удалось найти слово.');
+  } finally {
+    loader.style.display = 'none';
+  }
+}
+
+function renderWordCard(data) {
+  document.getElementById('result-word').textContent = data.word;
+  document.getElementById('result-phonetic').textContent = data.phonetic || '';
+
+  // Аудио
+  const audioBtn = document.getElementById('result-audio-btn');
+  if (data.phonetics && data.phonetics.find(p => p.audio)) {
+    const audioUrl = data.phonetics.find(p => p.audio)?.audio;
+    audioBtn.style.display = 'inline-block';
+    audioBtn.onclick = () => {
+      const audio = new Audio(audioUrl);
+      audio.play().catch(() => {
+        // Fallback: Web Speech
+        const utterance = new SpeechSynthesisUtterance(data.word);
+        utterance.lang = 'en-US';
+        speechSynthesis.speak(utterance);
+      });
+    };
+  } else {
+    audioBtn.style.display = 'none';
   }
 
-  const newWord = dictionary.addWord({
-    word,
-    translation: document.getElementById('translation-input').value,
-    explanation: document.getElementById('explanation-input').value,
-    examples: Array.from(document.querySelectorAll('.example-input'))
-      .map(el => el.value)
-      .filter(v => v.trim())
+  // Значения
+  const meaningsContainer = document.getElementById('result-meanings');
+  meaningsContainer.innerHTML = '';
+
+  data.meanings.forEach(meaning => {
+    const block = document.createElement('div');
+    block.className = 'meaning-block';
+    block.innerHTML = `
+      <h4>${meaning.partOfSpeech || '—'}</h4>
+      <p><strong>Meaning:</strong> ${meaning.definitions[0].definition}</p>
+      ${meaning.definitions[0].example ? `<p><strong>Example:</strong> ${meaning.definitions[0].example}</p>` : ''}
+      ${meaning.definitions.length > 1 ? '<p><em>+ ещё определения</em></p>' : ''}
+    `;
+    meaningsContainer.appendChild(block);
   });
 
-  // Сброс формы
-  document.getElementById('word-input').value = '';
-  document.getElementById('translation-input').value = '';
-  document.getElementById('explanation-input').value = '';
-  document.querySelectorAll('.example-input').forEach((el, i) => {
-    if (i === 0) el.value = '';
-    else el.remove();
-  });
+  wordCard.style.display = 'block';
+}
 
-  addForm.style.display = 'none';
-  wordsList.style.display = 'block';
+// Сохранить слово
+saveWordBtn.addEventListener('click', () => {
+  if (!currentWordData) return;
+
+  const firstMeaning = currentWordData.meanings[0];
+  const firstDef = firstMeaning?.definitions[0];
+
+  const wordToSave = {
+    word: currentWordData.word,
+    explanation: firstDef?.definition || '',
+    examples: firstDef?.example ? [firstDef.example] : [],
+    audioUrl: currentWordData.phonetics?.find(p => p.audio)?.audio || ''
+  };
+
+  dictionary.addWord(wordToSave);
+  alert('Слово сохранено в ваш словарь!');
   renderWordsList();
 });
 
-// Добавление примеров
-document.getElementById('add-example-btn').addEventListener('click', () => {
-  const container = document.getElementById('examples-container');
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'example-input';
-  input.placeholder = 'Ещё пример';
-  container.insertBefore(input, document.getElementById('add-example-btn'));
+// Скопировать карточку
+copyCardBtn.addEventListener('click', () => {
+  if (!currentWordData) return;
+
+  const text = `
+${currentWordData.word}${currentWordData.phonetic ? ` [${currentWordData.phonetic}]` : ''}
+
+Meaning: ${currentWordData.meanings[0]?.definitions[0]?.definition || '—'}
+
+Examples:
+${currentWordData.meanings[0]?.definitions[0]?.example ? `- ${currentWordData.meanings[0].definitions[0].example}` : ''}
+
+— Скопировано из My Dictionary
+  `.trim();
+
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Карточка скопирована!');
+  }).catch(() => {
+    alert('Не удалось скопировать. Попробуйте вручную.');
+  });
 });
 
-// Рендер списка слов
+// Переключение между режимами
+lookupBtn.addEventListener('click', handleLookup);
+lookupInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') handleLookup();
+});
+
+showLookupBtn.addEventListener('click', () => {
+  wordsListSection.style.display = 'none';
+  lookupInput.value = '';
+  wordCard.style.display = 'none';
+  document.querySelector('.lookup-section').scrollIntoView({ behavior: 'smooth' });
+});
+
+// Обновление списка
 function renderWordsList() {
   const words = dictionary.getWords();
+  document.getElementById('words-count').textContent = words.length;
+
   const emptyMsg = document.getElementById('empty-message');
+  const wordsList = document.getElementById('words-list');
+  wordsList.innerHTML = '';
+  wordsList.appendChild(emptyMsg);
 
   if (words.length === 0) {
     emptyMsg.style.display = 'block';
-    wordsList.innerHTML = '';
-    wordsList.appendChild(emptyMsg);
     return;
   }
 
   emptyMsg.style.display = 'none';
-  wordsList.innerHTML = '';
-  wordsList.appendChild(emptyMsg);
-
   words.forEach(word => {
     const div = document.createElement('div');
     div.className = 'word-item';
     div.innerHTML = `
       <strong>${word.word}</strong>
-      <span class="translation">${word.translation || '—'}</span>
-      <button class="view-btn" data-id="${word.id}">Подробнее</button>
+      <span class="translation">${word.explanation.substring(0, 50)}${word.explanation.length > 50 ? '...' : ''}</span>
     `;
     wordsList.appendChild(div);
   });
-
-  // Обработчик просмотра
-  document.querySelectorAll('.view-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const id = e.target.dataset.id;
-      showWordCard(id);
-    });
-  });
 }
-
-// Показ карточки слова
-function showWordCard(id) {
-  const word = dictionary.getWordById(id);
-  if (!word) return;
-
-  document.getElementById('modal-word').textContent = word.word;
-  document.getElementById('modal-translation').textContent = word.translation || '—';
-  document.getElementById('modal-explanation').textContent = word.explanation || '—';
-
-  const examplesList = document.getElementById('modal-examples');
-  examplesList.innerHTML = '';
-  word.examples.forEach(example => {
-    const li = document.createElement('li');
-    li.textContent = example;
-    examplesList.appendChild(li);
-  });
-
-  document.getElementById('play-audio-btn').onclick = () => {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(word.word);
-      utterance.lang = 'en-US';
-      speechSynthesis.speak(utterance);
-    } else {
-      alert('Ваш браузер не поддерживает произношение.');
-    }
-  };
-
-  wordModal.style.display = 'block';
-}
-
-closeModal.onclick = () => wordModal.style.display = 'none';
-window.onclick = (e) => {
-  if (e.target === wordModal) wordModal.style.display = 'none';
-};
-
-// Кнопка "Тренировка"
-startQuizBtn.addEventListener('click', () => {
-  const dueWords = dictionary.getWordsDueForReview();
-  if (dueWords.length === 0) {
-    alert('Нет слов для повторения! Добавьте новые слова или подождите.');
-    return;
-  }
-  // Позже: перейдём на страницу квиза или откроем модалку
-  alert(`Готово к тренировке! Слов для повторения: ${dueWords.length}`);
-});
