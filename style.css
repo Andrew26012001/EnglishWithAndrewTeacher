@@ -1,14 +1,10 @@
-/* Qwen Night Theme */
 :root {
   --bg: #0f0f11;
   --card-bg: #1a1a1d;
   --text: #e0e0e0;
   --text-secondary: #a0a0a6;
   --accent: #64ffda;
-  --accent-hover: #4de2c0;
   --border: #2d2d33;
-  --success: #4CAF50;
-  --error: #f44336;
   --shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 
@@ -30,7 +26,7 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Segoe UI', system-ui, Roboto, sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
   line-height: 1.6;
   min-height: 100vh;
 }
@@ -43,7 +39,6 @@ body {
   flex-direction: column;
 }
 
-/* Header */
 header {
   display: flex;
   justify-content: space-between;
@@ -70,14 +65,8 @@ header h1 {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  transition: background 0.2s;
 }
 
-.btn-icon:hover {
-  background: var(--border);
-}
-
-/* Navigation */
 .main-nav {
   display: flex;
   background: var(--card-bg);
@@ -92,7 +81,6 @@ header h1 {
   color: var(--text-secondary);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
 .nav-btn.active,
@@ -101,7 +89,6 @@ header h1 {
   background: var(--border);
 }
 
-/* Views */
 .view {
   display: none;
   padding: 20px;
@@ -111,7 +98,6 @@ header h1 {
   display: block;
 }
 
-/* Lookup */
 #lookup-input {
   width: 100%;
   padding: 14px;
@@ -123,11 +109,6 @@ header h1 {
   margin-bottom: 20px;
 }
 
-#lookup-input::placeholder {
-  color: var(--text-secondary);
-}
-
-/* Card */
 .card {
   background: var(--card-bg);
   border: 1px solid var(--border);
@@ -142,11 +123,6 @@ header h1 {
   margin-bottom: 8px;
 }
 
-.card p {
-  margin-bottom: 10px;
-}
-
-/* Actions */
 .actions {
   display: flex;
   gap: 12px;
@@ -164,14 +140,8 @@ header h1 {
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
 }
 
-.btn:hover {
-  background: var(--accent-hover);
-}
-
-/* Words Grid */
 .words-grid {
   display: grid;
   gap: 16px;
@@ -189,7 +159,6 @@ header h1 {
   margin-bottom: 6px;
 }
 
-/* Quiz */
 #quiz-question {
   text-align: center;
   margin-bottom: 24px;
@@ -211,23 +180,11 @@ header h1 {
   color: var(--text);
   font-size: 1rem;
   cursor: pointer;
-  transition: all 0.2s;
   text-align: center;
 }
 
-.answer-btn:hover {
-  border-color: var(--accent);
-}
-
-.answer-btn.correct {
-  background: var(--success);
-  color: white;
-}
-
-.answer-btn.incorrect {
-  background: var(--error);
-  color: white;
-}
+.answer-btn.correct { background: #4CAF50; color: white; }
+.answer-btn.incorrect { background: #f44336; color: white; }
 
 .progress-bar-container {
   width: 100%;
@@ -245,14 +202,12 @@ header h1 {
   transition: width 0.3s ease;
 }
 
-/* Empty state */
 .empty-state {
   text-align: center;
   color: var(--text-secondary);
   padding: 40px 20px;
 }
 
-/* Modal */
 .modal {
   position: fixed;
   top: 0;
@@ -276,19 +231,12 @@ header h1 {
   border: 1px solid var(--border);
 }
 
-/* Loader */
 .loader {
   text-align: center;
   color: var(--text-secondary);
 }
 
-/* Responsive */
 @media (max-width: 600px) {
-  .actions {
-    flex-direction: column;
-  }
-  
-  .btn {
-    width: 100%;
-  }
+  .actions { flex-direction: column; }
+  .btn { width: 100%; }
 }
