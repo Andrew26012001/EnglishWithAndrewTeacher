@@ -16,30 +16,40 @@
       <button id="start-quiz-btn" class="btn">🎮 Тренировка</button>
     </header>
 
-    <main class="content">
-      <!-- Форма добавления (изначально скрыта) -->
-      <div id="add-form" class="form-section" style="display: none;">
-        <h2>Добавить новое слово</h2>
-        <input type="text" id="word-input" placeholder="Слово на английском" required>
-        <input type="text" id="translation-input" placeholder="Перевод">
-        <textarea id="explanation-input" placeholder="Объяснение значения"></textarea>
-        <div id="examples-container">
-          <label>Примеры употребления:</label>
-          <input type="text" class="example-input" placeholder="Пример 1">
-          <button type="button" id="add-example-btn">+ Ещё пример</button>
-        </div>
-        <div class="form-buttons">
-          <button id="save-word-btn" class="btn btn-primary">Сохранить</button>
-          <button id="cancel-btn" class="btn">Отмена</button>
-        </div>
-      </div>
+   <main class="content">
+  <!-- Поиск слова -->
+  <div class="lookup-section">
+    <h2>🔍 Найдите слово</h2>
+    <div class="input-group">
+      <input type="text" id="lookup-input" placeholder="Введите английское слово (например: generous)" autocomplete="off">
+      <button id="lookup-btn" class="btn btn-primary">Найти</button>
+    </div>
+    <div id="lookup-loader" class="loader" style="display: none;">Загрузка...</div>
+  </div>
 
-      <!-- Список слов -->
-      <div id="words-list" class="words-list">
-        <p id="empty-message">Словарь пуст. Добавьте первое слово!</p>
-        <!-- Слова будут здесь -->
-      </div>
-    </main>
+  <!-- Результат поиска -->
+  <div id="word-card-result" class="word-card" style="display: none;">
+    <h2 id="result-word"></h2>
+    <p id="result-phonetic"></p>
+    <button id="result-audio-btn" class="btn btn-small" style="display: none;">🔊 Произношение</button>
+
+    <div id="result-meanings"></div>
+
+    <div class="card-actions">
+      <button id="save-word-btn" class="btn btn-primary">✅ Сохранить в словарь</button>
+      <button id="copy-card-btn" class="btn">📋 Скопировать</button>
+    </div>
+  </div>
+
+  <!-- Список слов (скрыт по умолчанию) -->
+  <div id="words-list-section" style="display: none;">
+    <h2>Мой словарь (<span id="words-count">0</span>)</h2>
+    <button id="show-lookup-btn" class="btn">+ Новое слово</button>
+    <div id="words-list" class="words-list">
+      <p id="empty-message">Словарь пуст.</p>
+    </div>
+  </div>
+</main>
 
     <!-- Модальное окно карточки слова -->
     <div id="word-modal" class="modal" style="display: none;">
