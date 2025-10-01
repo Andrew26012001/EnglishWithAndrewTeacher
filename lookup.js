@@ -3,21 +3,34 @@ export async function lookupWord(word) {
   
   const cleanWord = word.trim().toLowerCase();
   
-  // Dictionary API через CORS-прокси
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`)}`;
+  // Dictionary API через CORS-прокси (вернули allorigins.win для совместимости без VPN)
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`)}`;
   
   try {
-    const response = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) }); // Add timeout
+    const response = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) throw new Error('Network error');
     
     const data = await response.json();
-    if (!data[0]) throw new Error('Word not found');
-    const entry = data[0];
+    const rawContent = data.contents;
+    if (!rawContent) throw new Error('No content');
     
-    // Перевод
-    const transRes = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q=${encodeURIComponent(cleanWord)}`, { signal: AbortSignal.timeout(5000) });
+    const dictData = JSON.parse(rawContent);
+    if (!dictData[0]) throw new Error('Word not found');
+    const entry = dictData[0];
+    
+    // Перевод через LibreTranslate (без VPN, бесплатный публичный API)
+    const transRes = await fetch('https://libretranslate.de/translate', {
+      method: 'POST',
+      body: JSON.stringify({
+        q: cleanWord,
+        source: 'en',
+        target: 'ru',
+        format: 'text'
+      }),
+      headers: { 'Content-Type': 'application/json' }
+    });
     const transData = await transRes.json();
-    const translation = transData?.[0]?.[0]?.[0] || '';
+    const translation = transData.translatedText || '';
     
     // Синонимы
     const synonyms = await getSynonyms(cleanWord);
@@ -41,7 +54,7 @@ export async function getSynonyms(word) {
     const response = await fetch(`https://api.datamuse.com/words?rel_syn=${encodeURIComponent(word)}`);
     if (!response.ok) return [];
     const data = await response.json();
-    return data.slice(0, 5).map(item => item.word); // Reduced to 5 for UX
+    return data.slice(0, 5).map(item => item.word);
   } catch (e) {
     return [];
   }
