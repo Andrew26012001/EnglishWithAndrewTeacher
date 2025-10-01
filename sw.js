@@ -1,23 +1,10 @@
-const CACHE_NAME = 'my-dictionary-v1';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/script.js',
-  '/dictionary.js',
-  '/lookup.js'
-];
+const CACHE = 'lexiqwen-v1';
+const urls = ['/', '/index.html', '/style.css', '/script.js', '/dictionary.js', '/lookup.js', '/utils.js'];
 
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-  );
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(cache => cache.addAll(urls)));
 });
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
-  );
+self.addEventListener('fetch', e => {
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
 });
