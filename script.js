@@ -259,6 +259,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   
   searchBtn.addEventListener('click', handleLookup);
+  lookupInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLookup();
+  });
   
   setupImportExport();
   setupQR();
