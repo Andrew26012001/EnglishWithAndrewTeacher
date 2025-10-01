@@ -4,19 +4,15 @@ export async function lookupWord(word) {
   const cleanWord = word.trim().toLowerCase();
   
   // Dictionary API через CORS-прокси
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`)}`;
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`)}`;
   
   try {
     const response = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) }); // Add timeout
     if (!response.ok) throw new Error('Network error');
     
     const data = await response.json();
-    const rawContent = data.contents;
-    if (!rawContent) throw new Error('No content');
-    
-    const dictData = JSON.parse(rawContent);
-    if (!dictData[0]) throw new Error('Word not found');
-    const entry = dictData[0];
+    if (!data[0]) throw new Error('Word not found');
+    const entry = data[0];
     
     // Перевод
     const transRes = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ru&dt=t&q=${encodeURIComponent(cleanWord)}`, { signal: AbortSignal.timeout(5000) });
