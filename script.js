@@ -1,5 +1,5 @@
 import { Dictionary } from './dictionary.js';
-import { lookupWord } from './lookup.js';
+import { lookupWord, getSynonyms } from './lookup.js';
 import { downloadJSON, generateQR } from './utils.js';
 
 const dict = new Dictionary();
@@ -29,9 +29,8 @@ const startQuizBtn = document.getElementById('start-quiz-btn');
 
 let currentQuizWord = null;
 let quizWords = [];
-let currentWordData = null; // ← для хранения данных слова
 
-// Theme — используем data-theme
+// Theme
 function initTheme() {
   const saved = localStorage.getItem('theme') || 'dark';
   document.body.setAttribute('data-theme', saved);
@@ -76,42 +75,89 @@ async function handleLookup() {
   }
 }
 
-// ИСПРАВЛЕНО: Без onclick, через замыкание
-function renderWordCard(data) {
-  currentWordData = data; // сохраняем данные
-  
+async function renderWordCard(data) {
   let html = `<h2>${data.word}</h2>`;
   if (data.phonetic) html += `<p>[${data.phonetic}]</p>`;
   if (data.translation) html += `<p><strong>RU:</strong> ${data.translation}</p>`;
-  
-  if (data.meanings.length > 0) {
-    const m = data.meanings[0];
-    const def = m.definitions[0];
-    html += `<p><strong>EN:</strong> ${def.definition || ''}</p>`;
-    if (def.example) html += `<p><em>“${def.example}”</em></p>`;
+
+  // Все определения
+  if (data.meanings && data.meanings.length > 0) {
+    html += `<div class="section"><h3>DEFINITIONS</h3>`;
+    data.meanings.forEach(meaning => {
+      meaning.definitions.forEach(def => {
+        html += `<div class="definition">• ${def.definition || ''}`;
+        if (def.example) html += `<br><em>“${def.example}”</em>`;
+        html += `</div>`;
+      });
+    });
+    html += `</div>`;
   }
-  
+
+  // Примеры
+  if (data.meanings && data.meanings.length > 0) {
+    html += `<div class="section"><h3>EXAMPLES</h3>`;
+    data.meanings.forEach(meaning => {
+      meaning.definitions.forEach(def => {
+        if (def.example) {
+          html += `<div class="example">“${def.example}”</div>`;
+        }
+      });
+    });
+    html += `</div>`;
+  }
+
+  // Синонимы
+  html += `<div class="section"><h3>SYNONYMS</h3><div id="synonyms-container"></div></div>`;
+
+  // Аудио
+  if (data.audioUrl) {
+    html += `<button id="play-audio-btn" class="btn btn-small">🔊 Произношение</button>`;
+  }
+
+  // Кнопка сохранить
   html += `
     <div style="margin-top: 16px;">
-      <button id="save-current-word" class="btn">✅ Сохранить</button>
+      <button id="save-current-word" class="btn save-btn">✅ Сохранить</button>
     </div>
   `;
-  
+
   wordCard.innerHTML = html;
   wordCard.style.display = 'block';
-  
-  // Назначаем обработчик после вставки в DOM
+
+  // Обработчики
   document.getElementById('save-current-word').addEventListener('click', () => {
     dict.addWord({
-      word: currentWordData.word,
-      translation: currentWordData.translation,
-      explanation: currentWordData.meanings?.[0]?.definitions?.[0]?.definition || '',
-      examples: currentWordData.meanings?.[0]?.definitions?.[0]?.example ? [currentWordData.meanings[0].definitions[0].example] : [],
-      audioUrl: currentWordData.audioUrl
+      word: data.word,
+      translation: data.translation,
+      explanation: data.meanings?.[0]?.definitions?.[0]?.definition || '',
+      examples: data.meanings?.[0]?.definitions?.[0]?.example ? [data.meanings[0].definitions[0].example] : [],
+      audioUrl: data.audioUrl
     });
     alert('Слово сохранено!');
     renderWordsList();
   });
+
+  if (data.audioUrl) {
+    document.getElementById('play-audio-btn').addEventListener('click', () => {
+      const audio = new Audio(data.audioUrl);
+      audio.play().catch(() => {
+        const utterance = new SpeechSynthesisUtterance(data.word);
+        utterance.lang = 'en-US';
+        speechSynthesis.speak(utterance);
+      });
+    });
+  }
+
+  // Синонимы
+  const synonyms = await getSynonyms(data.word);
+  const synContainer = document.getElementById('synonyms-container');
+  if (synonyms.length === 0) {
+    synContainer.innerHTML = '<p>Нет синонимов.</p>';
+  } else {
+    synContainer.innerHTML = synonyms.map(syn => 
+      `<span class="synonym-tag">${syn}</span>`
+    ).join('');
+  }
 }
 
 // Dictionary
@@ -137,7 +183,7 @@ function renderWordsList() {
 function setupImportExport() {
   exportBtn.addEventListener('click', () => {
     const data = dict.export();
-    downloadJSON(data, 'lexiqwen-dictionary.json');
+    downloadJSON(data, 'english-dictionary.json');
   });
 
   importBtn.addEventListener('click', () => {
