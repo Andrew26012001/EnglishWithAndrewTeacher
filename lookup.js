@@ -3,8 +3,8 @@ export async function lookupWord(word) {
   
   const cleanWord = word.trim().toLowerCase();
   
-  // Dictionary API through new CORS proxy (api.codetabs.com/v1/proxy?quest=...)
-  const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`)}`;
+  // Dictionary API through reliable CORS proxy (corsproxy.io - works in 2025 without VPN)
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`)}`;
   
   try {
     const response = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
@@ -14,19 +14,11 @@ export async function lookupWord(word) {
     if (!data[0]) throw new Error('Word not found');
     const entry = data[0];
     
-    // Translation
-    const transRes = await fetch('https://libretranslate.de/translate', {
-      method: 'POST',
-      body: JSON.stringify({
-        q: cleanWord,
-        source: 'en',
-        target: 'ru',
-        format: 'text'
-      }),
-      headers: { 'Content-Type': 'application/json' }
-    });
+    // Translation through MyMemory (CORS allowed, no proxy needed)
+    const transUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanWord)}&langpair=en|ru`;
+    const transRes = await fetch(transUrl, { signal: AbortSignal.timeout(5000) });
     const transData = await transRes.json();
-    const translation = transData.translatedText || '';
+    const translation = transData.responseData?.translatedText || '';
     
     // Synonyms
     const synonyms = await getSynonyms(cleanWord);
