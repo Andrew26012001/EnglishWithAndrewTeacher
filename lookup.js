@@ -3,22 +3,18 @@ export async function lookupWord(word) {
   
   const cleanWord = word.trim().toLowerCase();
   
-  // Dictionary API через CORS-прокси (вернули allorigins.win для совместимости без VPN)
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`)}`;
+  // Dictionary API through new CORS proxy (api.codetabs.com/v1/proxy?quest=...)
+  const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`)}`;
   
   try {
     const response = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) throw new Error('Network error');
     
     const data = await response.json();
-    const rawContent = data.contents;
-    if (!rawContent) throw new Error('No content');
+    if (!data[0]) throw new Error('Word not found');
+    const entry = data[0];
     
-    const dictData = JSON.parse(rawContent);
-    if (!dictData[0]) throw new Error('Word not found');
-    const entry = dictData[0];
-    
-    // Перевод через LibreTranslate (без VPN, бесплатный публичный API)
+    // Translation
     const transRes = await fetch('https://libretranslate.de/translate', {
       method: 'POST',
       body: JSON.stringify({
@@ -32,7 +28,7 @@ export async function lookupWord(word) {
     const transData = await transRes.json();
     const translation = transData.translatedText || '';
     
-    // Синонимы
+    // Synonyms
     const synonyms = await getSynonyms(cleanWord);
 
     return {
