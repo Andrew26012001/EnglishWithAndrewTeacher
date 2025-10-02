@@ -3,24 +3,24 @@ export async function lookupWord(word) {
   
   const cleanWord = word.trim().toLowerCase();
   
-  // Dictionary API through reliable CORS proxy (corsproxy.io - works in 2025 without VPN)
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`)}`;
+  // Direct fetch to Dictionary API (CORS allowed)
+  const apiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`;
   
   try {
-    const response = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
+    const response = await fetch(apiUrl, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) throw new Error('Network error');
     
     const data = await response.json();
     if (!data[0]) throw new Error('Word not found');
     const entry = data[0];
     
-    // Translation through MyMemory (CORS allowed, no proxy needed)
+    // Translation through MyMemory (CORS allowed, direct from browser)
     const transUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanWord)}&langpair=en|ru`;
     const transRes = await fetch(transUrl, { signal: AbortSignal.timeout(5000) });
     const transData = await transRes.json();
     const translation = transData.responseData?.translatedText || '';
     
-    // Synonyms
+    // Synonyms (Datamuse allows CORS)
     const synonyms = await getSynonyms(cleanWord);
 
     return {
