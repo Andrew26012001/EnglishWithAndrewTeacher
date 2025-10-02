@@ -130,11 +130,20 @@ function renderWordsList() {
     item.innerHTML = `
       <div class="word-item-title">${word.word}</div>
       <div class="word-item-translation">${word.translation}</div>
+      <button class="delete-btn" style="float: right; background: none; border: none; cursor: pointer; color: red;">🗑️</button>
     `;
-    item.addEventListener('click', () => {
-      lookupInput.value = word.word;
-      handleLookup();
-      switchView('lookup');
+    item.querySelector('.delete-btn').addEventListener('click', () => {
+      if (confirm(`Удалить слово "${word.word}"?`)) {
+        dict.removeWord(word.id);
+        renderWordsList();
+      }
+    });
+    item.addEventListener('click', (e) => {
+      if (e.target.className !== 'delete-btn') {
+        lookupInput.value = word.word;
+        handleLookup();
+        switchView('lookup');
+      }
     });
     wordsList.appendChild(item);
   });
@@ -182,18 +191,26 @@ function setupQR() {
 }
 
 function loadQuiz() {
-  quizWords = dict.getWordsDue().sort(() => 0.5 - Math.random());
-  if (!quizWords.length) {
+  const allWords = dict.getWords();
+  if (!allWords.length) {
     quizContainer.style.display = 'none';
+    quizStart.innerHTML = '<p>Нет слов для повторения.</p><button id="start-quiz-btn" class="btn">🔄 Обновить</button>';
     quizStart.style.display = 'block';
+    document.getElementById('start-quiz-btn').addEventListener('click', loadQuiz);
     return;
   }
 
-  quizStart.style.display = 'none';
-  quizContainer.style.display = 'block';
-  nextQuizBtn.style.display = 'block';
-  nextQuizBtn.disabled = true;
-  showNextQuizQuestion();
+  quizContainer.style.display = 'none';
+  quizStart.innerHTML = '<button id="start-quiz-btn" class="btn">Начать тренировку</button>';
+  quizStart.style.display = 'block';
+  document.getElementById('start-quiz-btn').addEventListener('click', () => {
+    quizWords = [...allWords].sort(() => 0.5 - Math.random());
+    quizStart.style.display = 'none';
+    quizContainer.style.display = 'block';
+    nextQuizBtn.style.display = 'block';
+    nextQuizBtn.disabled = true;
+    showNextQuizQuestion();
+  });
 }
 
 function showNextQuizQuestion() {
