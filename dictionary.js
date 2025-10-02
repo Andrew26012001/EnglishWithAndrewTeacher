@@ -36,6 +36,11 @@ export class Dictionary {
     this.save();
   }
 
+  removeWord(id) {
+    this.words = this.words.filter(w => w.id !== id);
+    this.save();
+  }
+
   getWords() {
     return [...this.words];
   }
