@@ -1,3 +1,4 @@
+// script.js
 import { Dictionary } from './dictionary.js';
 import { lookupWord } from './lookup.js';
 import { downloadJSON, generateQR } from './utils.js';
@@ -73,13 +74,14 @@ async function handleLookup() {
 }
 
 function renderWordCard(data) {
+  const translationStr = (Array.isArray(data.translation) ? data.translation.join(', ') : data.translation) || '';
   let meaningsHtml = '';
-  data.meanings.forEach(meaning => {
+  (data.meanings || []).forEach(meaning => {
     meaningsHtml += `
       <div class="meaning">
-        <div class="meaning-type">${meaning.partOfSpeech}</div>
-        ${meaning.definitions.map(def => `
-          <div class="definition">${def.definition}</div>
+        <div class="meaning-type">${meaning.partOfSpeech || ''}</div>
+        ${ (meaning.definitions || []).map(def => `
+          <div class="definition">${def.definition || ''}</div>
           ${def.example ? `<div class="example">"${def.example}"</div>` : ''}
         `).join('')}
       </div>
@@ -87,7 +89,7 @@ function renderWordCard(data) {
   });
 
   let synonymsHtml = '';
-  if (data.synonyms.length) {
+  if (data.synonyms && data.synonyms.length) {
     synonymsHtml = `
       <div class="synonyms">
         <h4>Синонимы:</h4>
@@ -102,16 +104,39 @@ function renderWordCard(data) {
     <div class="word-header">
       <div>
         <div class="word-title">${data.word}</div>
-        <div class="phonetic">${data.phonetic} (${data.translation})</div>
+        <div class="phonetic">${data.phonetic} ${translationStr ? `(${translationStr})` : ''}</div>
       </div>
-      ${data.audioUrl ? `<button class="audio-btn" onclick="new Audio('${data.audioUrl}').play()">🔊</button>` : ''}
+      ${data.audioUrl ? `<button id="play-audio" class="audio-btn">🔊</button>` : ''}
     </div>
     ${meaningsHtml}
     ${synonymsHtml}
-    <button class="add-to-dict">Добавить в словарь</button>
+    <button id="add-to-dict" class="add-to-dict">Добавить в словарь</button>
   `;
 
-  wordCardResult.querySelector('.add-to-dict').addEventListener('click', () => dict.addWord(data));
+  if (data.audioUrl) {
+    const playBtn = wordCardResult.querySelector('#play-audio');
+    playBtn.addEventListener('click', () => {
+      try {
+        const audio = new Audio(data.audioUrl);
+        audio.play().catch(() => {});
+      } catch (e) {}
+    });
+  }
+
+  wordCardResult.querySelector('#add-to-dict').addEventListener('click', () => {
+    // Prepare shape compatible with Dictionary.addWord
+    const wordToAdd = {
+      word: data.word,
+      phonetic: data.phonetic,
+      audioUrl: data.audioUrl,
+      meanings: data.meanings || [],
+      translation: Array.isArray(data.translation) ? data.translation : (data.translation ? [data.translation] : [])
+    };
+    dict.addWord(wordToAdd);
+    alert(`Слово "${data.word}" добавлено.`);
+    renderWordsList();
+  });
+
   wordCardResult.style.display = 'block';
 }
 
@@ -128,23 +153,30 @@ function renderWordsList() {
     const item = document.createElement('div');
     item.className = 'word-item';
     item.innerHTML = `
-      <div class="word-item-title">${word.word}</div>
-      <div class="word-item-translation">${word.translation}</div>
-      <button class="delete-btn" style="float: right; background: none; border: none; cursor: pointer; color: red;">🗑️</button>
+      <div>
+        <div class="word-item-title">${word.word}</div>
+        <div class="word-item-translation">${word.translationStr || (word.translation || []).join(', ')}</div>
+      </div>
+      <div>
+        <button class="delete-btn" aria-label="Удалить слово" style="float: right; background: none; border: none; cursor: pointer; color: red;">🗑️</button>
+      </div>
     `;
-    item.querySelector('.delete-btn').addEventListener('click', () => {
+    // delete handler
+    item.querySelector('.delete-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
       if (confirm(`Удалить слово "${word.word}"?`)) {
         dict.removeWord(word.id);
         renderWordsList();
       }
     });
+
     item.addEventListener('click', (e) => {
-      if (e.target.className !== 'delete-btn') {
-        lookupInput.value = word.word;
-        handleLookup();
-        switchView('lookup');
-      }
+      if (e.target.closest('.delete-btn')) return;
+      lookupInput.value = word.word;
+      handleLookup();
+      switchView('lookup');
     });
+
     wordsList.appendChild(item);
   });
 }
@@ -170,6 +202,8 @@ function setupImportExport() {
       }
     };
     reader.readAsText(file);
+    // clear value to allow reimport same file
+    importFile.value = '';
   });
 }
 
@@ -183,6 +217,8 @@ function setupQR() {
     qrCode.innerHTML = '';
     qrCode.appendChild(generateQR(json));
     qrModal.style.display = 'flex';
+    // focus close button for accessibility
+    closeQr.focus();
   });
 
   closeQr.addEventListener('click', () => {
@@ -191,8 +227,8 @@ function setupQR() {
 }
 
 function loadQuiz() {
-  const allWords = dict.getWords();
-  if (!allWords.length) {
+  const dueWords = dict.getWordsDue();
+  if (!dueWords.length) {
     quizContainer.style.display = 'none';
     quizStart.innerHTML = '<p>Нет слов для повторения.</p><button id="start-quiz-btn" class="btn">🔄 Обновить</button>';
     quizStart.style.display = 'block';
@@ -204,7 +240,7 @@ function loadQuiz() {
   quizStart.innerHTML = '<button id="start-quiz-btn" class="btn">Начать тренировку</button>';
   quizStart.style.display = 'block';
   document.getElementById('start-quiz-btn').addEventListener('click', () => {
-    quizWords = [...allWords].sort(() => 0.5 - Math.random());
+    quizWords = [...dueWords].sort(() => 0.5 - Math.random());
     quizStart.style.display = 'none';
     quizContainer.style.display = 'block';
     nextQuizBtn.style.display = 'block';
@@ -220,75 +256,11 @@ function showNextQuizQuestion() {
     nextQuizBtn.style.display = 'none';
     return;
   }
-  
+
   const word = quizWords.shift();
   currentQuizWord = word;
-  
-  quizQuestion.textContent = `Что означает "${word.word}"?`;
-  quizAnswers.innerHTML = '';
-  
-  const allWords = dict.getWords().filter(w => w.id !== word.id);
-  const wrongWords = allWords.sort(() => 0.5 - Math.random()).slice(0, 3);
-  const fallbackDef = word.meanings[0]?.definitions[0]?.definition?.substring(0, 50) || '';
-  const options = [
-    { text: word.translation || fallbackDef, correct: true },
-    ...wrongWords.map(w => {
-      const wFallback = w.meanings[0]?.definitions[0]?.definition?.substring(0, 50) || w.word;
-      return { text: w.translation || wFallback, correct: false };
-    })
-  ].sort(() => 0.5 - Math.random());
-  
-  options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.className = 'answer-btn';
-    btn.textContent = opt.text;
-    btn.dataset.correct = opt.correct;
-    btn.addEventListener('click', handleQuizAnswer);
-    quizAnswers.appendChild(btn);
-  });
-}
 
-function handleQuizAnswer(e) {
-  const isCorrect = e.target.dataset.correct === 'true';
-  const buttons = document.querySelectorAll('.answer-btn');
-  
-  buttons.forEach(btn => {
-    btn.disabled = true;
-    if (btn.dataset.correct === 'true') {
-      btn.classList.add('correct');
-    } else if (btn === e.target && !isCorrect) {
-      btn.classList.add('incorrect');
-    }
-  });
-  
-  const grade = isCorrect ? 2 : 0; // Can extend to hard/easy later
-  dict.updateSRS(currentQuizWord.id, grade);
-  nextQuizBtn.disabled = false;
-}
-
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-  initTheme();
-  themeToggle.addEventListener('click', toggleTheme);
-  
-  navBtns.forEach(btn => {
-    btn.addEventListener('click', () => switchView(btn.dataset.view));
-  });
-  
-  searchBtn.addEventListener('click', handleLookup);
-  lookupInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') handleLookup();
-  });
-  
-  setupImportExport();
-  setupQR();
-  
-  nextQuizBtn.addEventListener('click', () => {
-    nextQuizBtn.disabled = true;
-    showNextQuizQuestion();
-  });
-  
-  startQuizBtn.addEventListener('click', loadQuiz);
-  
-  renderWordsList();
-});
+  // Update progress bar
+  const total = dict.getWordsDue().length || 1; // snapshot size
+  const done = total - quizWords.length;
+  const percent = Math
