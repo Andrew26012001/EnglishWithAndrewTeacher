@@ -29,7 +29,7 @@ const navBtns = document.querySelectorAll('.nav-btn');
 
 let currentQuizWord = null;
 let quizWords = [];
-let quizTotal = 0;
+let quizTotalWords = 0;
 let quizCorrect = 0;
 let quizIncorrect = 0;
 
@@ -75,6 +75,49 @@ async function handleLookup() {
   }
 }
 
+function renderWordCard(data) {
+  let meaningsHtml = '';
+  data.meanings.forEach(meaning => {
+    meaningsHtml += `
+      <div class="meaning">
+        <div class="meaning-type">${meaning.partOfSpeech}</div>
+        ${meaning.definitions.map(def => `
+          <div class="definition">${def.definition}</div>
+          ${def.example ? `<div class="example">"${def.example}"</div>` : ''}
+        `).join('')}
+      </div>
+    `;
+  });
+
+  let synonymsHtml = '';
+  if (data.synonyms.length) {
+    synonymsHtml = `
+      <div class="synonyms">
+        <h4>Синонимы:</h4>
+        <div class="synonyms-list">
+          ${data.synonyms.map(syn => `<span class="synonym">${syn}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  wordCardResult.innerHTML = `
+    <div class="word-header">
+      <div>
+        <div class="word-title">${data.word}</div>
+        <div class="phonetic">${data.phonetic} (${data.translation.join(', ')})</div>
+      </div>
+      ${data.audioUrl ? `<button class="audio-btn" onclick="new Audio('${data.audioUrl}').play()">🔊</button>` : ''}
+    </div>
+    ${meaningsHtml}
+    ${synonymsHtml}
+    <button class="add-to-dict">Добавить в словарь</button>
+  `;
+
+  wordCardResult.querySelector('.add-to-dict').addEventListener('click', () => dict.addWord(data));
+  wordCardResult.style.display = 'block';
+}
+
 function renderWordsList() {
   const words = dict.getWords();
   wordsList.innerHTML = '';
@@ -89,7 +132,7 @@ function renderWordsList() {
     item.className = 'word-item';
     item.innerHTML = `
       <div class="word-item-title">${word.word}</div>
-      <div class="word-item-translation">${word.translation.join(', ')}</div>
+      <div class="word-item-translation">${Array.isArray(word.translation) ? word.translation.join(', ') : word.translation}</div>
       <button class="delete-btn" style="float: right; background: none; border: none; cursor: pointer; color: red;">🗑️</button>
     `;
     item.querySelector('.delete-btn').addEventListener('click', () => {
@@ -99,7 +142,7 @@ function renderWordsList() {
       }
     });
     item.addEventListener('click', (e) => {
-      if (e.target.tagName !== 'BUTTON') {
+      if (!e.target.classList.contains('delete-btn')) {
         lookupInput.value = word.word;
         handleLookup();
         switchView('lookup');
@@ -154,21 +197,22 @@ function loadQuiz() {
   const allWords = dict.getWords();
   if (!allWords.length) {
     quizContainer.style.display = 'none';
-    quizStart.innerHTML = '<p>Нет слов для повторения.</p>';
     quizStart.style.display = 'block';
+    quizStart.innerHTML = '<p>Нет слов в словаре.</p>';
     return;
   }
 
   quizContainer.style.display = 'none';
-  quizStart.innerHTML = '<button id="start-quiz-btn" class="btn">Начать тренировку</button>';
   quizStart.style.display = 'block';
-  document.getElementById('start-quiz-btn').addEventListener('click', startQuiz);
+  quizStart.innerHTML = '<button id="start-quiz-btn" class="btn">Начать тренировку</button>';
+  const startBtn = document.getElementById('start-quiz-btn');
+  startBtn.addEventListener('click', startQuiz);
 }
 
 function startQuiz() {
   const allWords = dict.getWords();
-  quizWords = [...allWords].sort(() => 0.5 - Math.random()).slice(0, Math.min(10, allWords.length)); // Limit to 10 questions for better UX
-  quizTotal = quizWords.length;
+  quizWords = [...allWords].sort(() => 0.5 - Math.random());
+  quizTotalWords = quizWords.length;
   quizCorrect = 0;
   quizIncorrect = 0;
   quizStart.style.display = 'none';
@@ -181,26 +225,35 @@ function startQuiz() {
 
 function showNextQuizQuestion() {
   if (!quizWords.length) {
-    quizQuestion.textContent = 'Тренировка завершена!';
-    quizAnswers.innerHTML = `<p>Правильно: ${quizCorrect} из ${quizTotal}</p><p>Ошибок: ${quizIncorrect}</p>`;
-    nextQuizBtn.textContent = 'Завершить';
-    nextQuizBtn.disabled = false;
-    nextQuizBtn.addEventListener('click', () => switchView('dictionary'), { once: true });
+    quizQuestion.textContent = `Тренировка завершена! Правильно: ${quizCorrect}, Неправильно: ${quizIncorrect}`;
+    quizAnswers.innerHTML = '';
+    nextQuizBtn.style.display = 'none';
     return;
   }
   
-  const word = quizWords[0]; // Don't shift yet, to allow repeat on wrong
+  const word = quizWords.shift();
   currentQuizWord = word;
   
-  quizQuestion.textContent = `Что означает "${word.word}"? (Вопрос ${quizTotal - quizWords.length + 1}/${quizTotal})`;
+  quizQuestion.textContent = `Что означает "${word.word}"?`;
   quizAnswers.innerHTML = '';
   
   const allWords = dict.getWords().filter(w => w.id !== word.id);
-  const wrongWords = allWords.sort(() => 0.5 - Math.random()).slice(0, 3);
+  let wrongWords = allWords.sort(() => 0.5 - Math.random()).slice(0, 3);
+  if (wrongWords.length < 3) {
+    // If few words, duplicate or use fallback
+    while (wrongWords.length < 3) {
+      wrongWords.push(allWords[Math.floor(Math.random() * allWords.length)] || { translation: 'Фейковый перевод' });
+    }
+  }
+  const translation = Array.isArray(word.translation) ? word.translation[0] : word.translation;
   const fallbackDef = word.meanings[0]?.definitions[0]?.definition?.substring(0, 50) || '';
   const options = [
-    { text: word.translation[0] || fallbackDef, correct: true },
-    ...wrongWords.map(w => ({ text: w.translation[0] || w.word, correct: false }))
+    { text: translation || fallbackDef, correct: true },
+    ...wrongWords.map(w => {
+      const wTranslation = Array.isArray(w.translation) ? w.translation[0] : w.translation;
+      const wFallback = w.meanings[0]?.definitions[0]?.definition?.substring(0, 50) || w.word;
+      return { text: wTranslation || wFallback, correct: false };
+    })
   ].sort(() => 0.5 - Math.random());
   
   options.forEach(opt => {
@@ -212,9 +265,17 @@ function showNextQuizQuestion() {
     quizAnswers.appendChild(btn);
   });
 
-  // Progress
-  const progress = ((quizTotal - quizWords.length) / quizTotal) * 100;
+  // Update progress
+  const progress = ((quizTotalWords - quizWords.length) / quizTotalWords) * 100;
   quizProgressBar.style.width = `${progress}%`;
+
+  if (word.audioUrl) {
+    const audioBtn = document.createElement('button');
+    audioBtn.className = 'audio-btn';
+    audioBtn.textContent = '🔊';
+    audioBtn.onclick = () => new Audio(word.audioUrl).play();
+    quizQuestion.appendChild(audioBtn);
+  }
 }
 
 function handleQuizAnswer(e) {
@@ -230,18 +291,17 @@ function handleQuizAnswer(e) {
     }
   });
   
-  const grade = isCorrect ? 2 : 0;
-  dict.updateSRS(currentQuizWord.id, grade);
-
   if (isCorrect) {
     quizCorrect++;
-    quizWords.shift(); // Remove correct
   } else {
     quizIncorrect++;
-    // Leave in quiz for repeat later? No, shift anyway for simplicity
-    quizWords.shift();
+    // Show correct answer
+    const correctText = Array.isArray(currentQuizWord.translation) ? currentQuizWord.translation.join(', ') : currentQuizWord.translation;
+    quizAnswers.innerHTML += `<p style="color: green;">Правильный ответ: ${correctText}</p>`;
   }
-
+  
+  const grade = isCorrect ? 2 : 0;
+  dict.updateSRS(currentQuizWord.id, grade);
   nextQuizBtn.disabled = false;
 }
 
