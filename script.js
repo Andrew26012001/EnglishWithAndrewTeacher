@@ -29,6 +29,9 @@ const navBtns = document.querySelectorAll('.nav-btn');
 
 let currentQuizWord = null;
 let quizWords = [];
+let quizTotalWords = 0;
+let quizCorrect = 0;
+let quizIncorrect = 0;
 
 function initTheme() {
   if (localStorage.getItem('theme') === 'light') {
@@ -102,7 +105,7 @@ function renderWordCard(data) {
     <div class="word-header">
       <div>
         <div class="word-title">${data.word}</div>
-        <div class="phonetic">${data.phonetic} (${data.translation})</div>
+        <div class="phonetic">${data.phonetic} (${data.translation.join(', ')})</div>
       </div>
       ${data.audioUrl ? `<button class="audio-btn" onclick="new Audio('${data.audioUrl}').play()">🔊</button>` : ''}
     </div>
@@ -129,7 +132,7 @@ function renderWordsList() {
     item.className = 'word-item';
     item.innerHTML = `
       <div class="word-item-title">${word.word}</div>
-      <div class="word-item-translation">${word.translation}</div>
+      <div class="word-item-translation">${Array.isArray(word.translation) ? word.translation.join(', ') : word.translation}</div>
       <button class="delete-btn" style="float: right; background: none; border: none; cursor: pointer; color: red;">🗑️</button>
     `;
     item.querySelector('.delete-btn').addEventListener('click', () => {
@@ -139,7 +142,7 @@ function renderWordsList() {
       }
     });
     item.addEventListener('click', (e) => {
-      if (e.target.className !== 'delete-btn') {
+      if (!e.target.classList.contains('delete-btn')) {
         lookupInput.value = word.word;
         handleLookup();
         switchView('lookup');
@@ -194,28 +197,35 @@ function loadQuiz() {
   const allWords = dict.getWords();
   if (!allWords.length) {
     quizContainer.style.display = 'none';
-    quizStart.innerHTML = '<p>Нет слов для повторения.</p><button id="start-quiz-btn" class="btn">🔄 Обновить</button>';
     quizStart.style.display = 'block';
-    document.getElementById('start-quiz-btn').addEventListener('click', loadQuiz);
+    quizStart.innerHTML = '<p>Нет слов в словаре.</p>';
     return;
   }
 
   quizContainer.style.display = 'none';
-  quizStart.innerHTML = '<button id="start-quiz-btn" class="btn">Начать тренировку</button>';
   quizStart.style.display = 'block';
-  document.getElementById('start-quiz-btn').addEventListener('click', () => {
-    quizWords = [...allWords].sort(() => 0.5 - Math.random());
-    quizStart.style.display = 'none';
-    quizContainer.style.display = 'block';
-    nextQuizBtn.style.display = 'block';
-    nextQuizBtn.disabled = true;
-    showNextQuizQuestion();
-  });
+  quizStart.innerHTML = '<button id="start-quiz-btn" class="btn">Начать тренировку</button>';
+  const startBtn = document.getElementById('start-quiz-btn');
+  startBtn.addEventListener('click', startQuiz);
+}
+
+function startQuiz() {
+  const allWords = dict.getWords();
+  quizWords = [...allWords].sort(() => 0.5 - Math.random());
+  quizTotalWords = quizWords.length;
+  quizCorrect = 0;
+  quizIncorrect = 0;
+  quizStart.style.display = 'none';
+  quizContainer.style.display = 'block';
+  nextQuizBtn.style.display = 'block';
+  nextQuizBtn.disabled = true;
+  quizProgressBar.style.width = '0%';
+  showNextQuizQuestion();
 }
 
 function showNextQuizQuestion() {
   if (!quizWords.length) {
-    quizQuestion.textContent = 'Тренировка завершена!';
+    quizQuestion.textContent = `Тренировка завершена! Правильно: ${quizCorrect}, Неправильно: ${quizIncorrect}`;
     quizAnswers.innerHTML = '';
     nextQuizBtn.style.display = 'none';
     return;
@@ -228,13 +238,21 @@ function showNextQuizQuestion() {
   quizAnswers.innerHTML = '';
   
   const allWords = dict.getWords().filter(w => w.id !== word.id);
-  const wrongWords = allWords.sort(() => 0.5 - Math.random()).slice(0, 3);
+  let wrongWords = allWords.sort(() => 0.5 - Math.random()).slice(0, 3);
+  if (wrongWords.length < 3) {
+    // If few words, duplicate or use fallback
+    while (wrongWords.length < 3) {
+      wrongWords.push(allWords[Math.floor(Math.random() * allWords.length)] || { translation: 'Фейковый перевод' });
+    }
+  }
+  const translation = Array.isArray(word.translation) ? word.translation[0] : word.translation;
   const fallbackDef = word.meanings[0]?.definitions[0]?.definition?.substring(0, 50) || '';
   const options = [
-    { text: word.translation || fallbackDef, correct: true },
+    { text: translation || fallbackDef, correct: true },
     ...wrongWords.map(w => {
+      const wTranslation = Array.isArray(w.translation) ? w.translation[0] : w.translation;
       const wFallback = w.meanings[0]?.definitions[0]?.definition?.substring(0, 50) || w.word;
-      return { text: w.translation || wFallback, correct: false };
+      return { text: wTranslation || wFallback, correct: false };
     })
   ].sort(() => 0.5 - Math.random());
   
@@ -246,6 +264,18 @@ function showNextQuizQuestion() {
     btn.addEventListener('click', handleQuizAnswer);
     quizAnswers.appendChild(btn);
   });
+
+  // Update progress
+  const progress = ((quizTotalWords - quizWords.length) / quizTotalWords) * 100;
+  quizProgressBar.style.width = `${progress}%`;
+
+  if (word.audioUrl) {
+    const audioBtn = document.createElement('button');
+    audioBtn.className = 'audio-btn';
+    audioBtn.textContent = '🔊';
+    audioBtn.onclick = () => new Audio(word.audioUrl).play();
+    quizQuestion.appendChild(audioBtn);
+  }
 }
 
 function handleQuizAnswer(e) {
@@ -261,7 +291,16 @@ function handleQuizAnswer(e) {
     }
   });
   
-  const grade = isCorrect ? 2 : 0; // Can extend to hard/easy later
+  if (isCorrect) {
+    quizCorrect++;
+  } else {
+    quizIncorrect++;
+    // Show correct answer
+    const correctText = Array.isArray(currentQuizWord.translation) ? currentQuizWord.translation.join(', ') : currentQuizWord.translation;
+    quizAnswers.innerHTML += `<p style="color: green;">Правильный ответ: ${correctText}</p>`;
+  }
+  
+  const grade = isCorrect ? 2 : 0;
   dict.updateSRS(currentQuizWord.id, grade);
   nextQuizBtn.disabled = false;
 }
