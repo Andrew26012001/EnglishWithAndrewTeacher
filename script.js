@@ -1,9 +1,29 @@
+import { initializeApp } from "firebase/app";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 import { Dictionary } from './dictionary.js';
 import { lookupWord } from './lookup.js';
 import { downloadJSON, generateQR } from './utils.js';
 
-const dict = new Dictionary();
+// Firebase config (скопирован из Firebase Console)
+const firebaseConfig = {
+  apiKey: "AIzaSyBPRhzr9tXeD6xKhIxBrzzOaf_IR9pcPpE",
+  authDomain: "clindan-e064c.firebaseapp.com",
+  projectId: "clindan-e064c",
+  storageBucket: "clindan-e064c.firebasestorage.app",
+  messagingSenderId: "425082439193",
+  appId: "1:425082439193:web:c2e23a4cef0b8d04d20c88",
+  measurementId: "G-WF2ZW9MQLQ"
+};
 
+// Инициализация Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const dict = new Dictionary(db);
+
+// Элементы DOM
 const themeToggle = document.getElementById('theme-toggle');
 const lookupInput = document.getElementById('lookup-input');
 const searchBtn = document.getElementById('search-btn');
@@ -36,21 +56,6 @@ const sortSelect = document.getElementById('sort-select');
 let currentQuizWord = null;
 let quizWords = [];
 let currentUser = null;
-
-// Firebase init
-const firebaseConfig = {
-  // Вставь свой config здесь!
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
-
-const app = firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
 
 function initTheme() {
   if (localStorage.getItem('theme') === 'light') {
@@ -360,11 +365,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Auth
   loginBtn.addEventListener('click', () => {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(e => alert('Ошибка логина: ' + e.message));
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(auth, provider).catch(e => alert('Ошибка логина: ' + e.message));
   });
 
-  auth.onAuthStateChanged(async user => {
+  onAuthStateChanged(auth, async user => {
     currentUser = user;
     if (user) {
       loginBtn.style.display = 'none';
