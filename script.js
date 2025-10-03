@@ -1,11 +1,11 @@
-import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
 import { Dictionary } from './dictionary.js';
 import { lookupWord } from './lookup.js';
 import { downloadJSON, generateQR } from './utils.js';
+import { initializeApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, getDocs, doc, getDoc, writeBatch, setDoc } from 'firebase/firestore';
 
-// Firebase config (скопирован из Firebase Console)
+// Firebase config from user
 const firebaseConfig = {
   apiKey: "AIzaSyBPRhzr9tXeD6xKhIxBrzzOaf_IR9pcPpE",
   authDomain: "clindan-e064c.firebaseapp.com",
@@ -16,14 +16,12 @@ const firebaseConfig = {
   measurementId: "G-WF2ZW9MQLQ"
 };
 
-// Инициализация Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 const dict = new Dictionary(db);
 
-// Элементы DOM
 const themeToggle = document.getElementById('theme-toggle');
 const lookupInput = document.getElementById('lookup-input');
 const searchBtn = document.getElementById('search-btn');
@@ -364,9 +362,13 @@ document.addEventListener('DOMContentLoaded', () => {
   sortSelect.addEventListener('change', renderWordsList);
 
   // Auth
-  loginBtn.addEventListener('click', () => {
+  loginBtn.addEventListener('click', async () => {
     const provider = new GoogleAuthProvider();
-    signInWithPopup(auth, provider).catch(e => alert('Ошибка логина: ' + e.message));
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (e) {
+      alert('Ошибка логина: ' + e.message);
+    }
   });
 
   onAuthStateChanged(auth, async user => {
