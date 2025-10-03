@@ -9,11 +9,13 @@ export class Dictionary {
 
   async load(uid) {
     try {
-      const snapshot = await this.db.collection(`users/${uid}/words`).get();
+      const wordsRef = collection(this.db, `users/${uid}/words`);
+      const snapshot = await getDocs(wordsRef);
       this.words = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       // Загрузка gistId из user settings
-      const userDoc = await this.db.doc(`users/${uid}`).get();
-      if (userDoc.exists) {
+      const userRef = doc(this.db, `users/${uid}`);
+      const userDoc = await getDoc(userRef);
+      if (userDoc.exists()) {
         this.gistId = userDoc.data().gistId || null;
       }
     } catch (e) {
@@ -24,15 +26,16 @@ export class Dictionary {
 
   async save(uid) {
     try {
-      const batch = this.db.batch();
+      const batch = writeBatch(this.db);
       this.words.forEach(word => {
-        const docRef = this.db.collection(`users/${uid}/words`).doc(word.id);
+        const docRef = doc(this.db, `users/${uid}/words`, word.id);
         batch.set(docRef, word);
       });
       await batch.commit();
       // Сохраняем gistId, если есть
       if (this.gistId) {
-        await this.db.doc(`users/${uid}`).set({ gistId: this.gistId }, { merge: true });
+        const userRef = doc(this.db, `users/${uid}`);
+        await setDoc(userRef, { gistId: this.gistId }, { merge: true });
       }
     } catch (e) {
       console.error('Save error:', e);
