@@ -182,10 +182,14 @@ export class Dictionary {
   }
 
   async importFromGist(uid) {
-    const gistUrlOrId = prompt('Введите ID или URL GitHub Gist:');
-    if (!gistUrlOrId) return;
-
-    const gistId = gistUrlOrId.split('/').pop(); // Extract ID from URL if needed
+    let gistId = this.gistId;
+    if (!gistId) {
+      const gistUrlOrId = prompt('Введите ID или URL GitHub Gist:');
+      if (!gistUrlOrId) return;
+      gistId = gistUrlOrId.split('/').pop(); // Extract ID from URL if needed
+      this.gistId = gistId;
+      this.save(uid);
+    }
 
     try {
       const response = await fetch(`https://api.github.com/gists/${gistId}`, {
@@ -197,8 +201,6 @@ export class Dictionary {
         const fileContent = data.files['dictionary.json']?.content;
         if (fileContent) {
           this.import(fileContent, uid);
-          this.gistId = gistId;
-          this.save(uid);
           alert('Импорт из Gist успешен!');
         } else {
           alert('Нет файла dictionary.json в Gist.');
@@ -210,5 +212,19 @@ export class Dictionary {
       console.error('Gist import error:', e);
       alert('Ошибка соединения.');
     }
+  }
+
+  async syncWithGist(uid) {
+    if (!this.githubToken) {
+      this.githubToken = prompt('Введите GitHub Personal Access Token (с scope "gist"):');
+      if (!this.githubToken) return;
+      localStorage.setItem('github_token', this.githubToken);
+    }
+
+    // Импорт (merge) из Gist
+    await this.importFromGist(uid);
+    // Экспорт обратно в Gist для синхронизации
+    await this.exportToGist(uid);
+    alert('Синхронизация с Gist завершена!');
   }
 }
