@@ -1,3 +1,4 @@
+/* Без изменений, с добавлением для select если нужно */
 :root {
   --bg: #0f0f11;
   --text: #e0e0e0;
@@ -189,8 +190,18 @@ input[type="text"] {
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 20px;
+}
+
+.actions select {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+  color: var(--text);
+  cursor: pointer;
 }
 
 .btn {
@@ -218,6 +229,9 @@ input[type="text"] {
   border-radius: 12px;
   padding: 16px;
   cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .word-item-title {
@@ -227,6 +241,8 @@ input[type="text"] {
 
 .word-item-translation {
   color: var(--text-secondary);
+  flex: 1;
+  margin-left: 10px;
 }
 
 .answers-grid {
@@ -317,4 +333,5 @@ input[type="text"] {
   .btn { width: 100%; }
   .search-container { flex-direction: column; }
   .search-container .btn { width: 100%; }
+  .actions select { width: 100%; }
 }
