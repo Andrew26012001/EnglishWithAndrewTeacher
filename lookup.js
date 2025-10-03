@@ -26,7 +26,7 @@ export async function lookupWord(word) {
     word: entry.word,
     phonetic: entry.phonetic || '',
     audioUrl: entry.phonetics?.find(p => p.audio)?.audio || '',
-    translation: transResult.translation,
+    translation: transResult.translation.join(' / '), // Join array for better display
     meanings: entry.meanings || [],
     synonyms: entry.synonyms || [],
     ...(transResult.suggestions && { suggestions: transResult.suggestions })
