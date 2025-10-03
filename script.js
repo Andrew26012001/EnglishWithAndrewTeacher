@@ -5,7 +5,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, getDocs, doc, getDoc, writeBatch, setDoc } from 'firebase/firestore';
 
-// Firebase config from user
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyBPRhzr9tXeD6xKhIxBrzzOaf_IR9pcPpE",
   authDomain: "clindan-e064c.firebaseapp.com",
@@ -90,6 +90,7 @@ async function handleLookup() {
     const data = await lookupWord(word);
     renderWordCard(data);
   } catch (error) {
+    console.error('Lookup error:', error);
     wordCardResult.innerHTML = `<p style="color: red;">${error.message}</p>`;
     wordCardResult.style.display = 'block';
   } finally {
@@ -137,7 +138,11 @@ function renderWordCard(data) {
   `;
 
   wordCardResult.querySelector('.add-to-dict').addEventListener('click', () => {
-    if (currentUser) dict.addWord(data, currentUser.uid);
+    if (currentUser) {
+      dict.addWord(data, currentUser.uid);
+    } else {
+      alert('Залогиньтесь для добавления.');
+    }
   });
   wordCardResult.style.display = 'block';
 }
@@ -339,6 +344,7 @@ function handleQuizAnswer(e) {
 
 // Init
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('App loaded');
   initTheme();
   themeToggle.addEventListener('click', toggleTheme);
   
@@ -367,6 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       await signInWithPopup(auth, provider);
     } catch (e) {
+      console.error('Login error:', e);
       alert('Ошибка логина: ' + e.message);
     }
   });
@@ -376,10 +383,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (user) {
       loginBtn.style.display = 'none';
       userInfo.textContent = `Logged in as ${user.displayName}`;
-      await dict.load(user.uid);
-      // Автоматический импорт из Gist при логине, если gistId есть (для синхронизации)
-      if (dict.gistId) {
-        await dict.importFromGist(user.uid);
+      try {
+        await dict.load(user.uid);
+        if (dict.gistId) {
+          await dict.importFromGist(user.uid);
+        }
+      } catch (e) {
+        console.error('Auth load error:', e);
       }
       renderWordsList();
     } else {
