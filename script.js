@@ -14,6 +14,9 @@ const emptyDict = document.getElementById('empty-dict');
 const exportBtn = document.getElementById('export-btn');
 const importBtn = document.getElementById('import-btn');
 const importFile = document.getElementById('import-file');
+const exportGistBtn = document.getElementById('export-gist-btn');
+const importGistBtn = document.getElementById('import-gist-btn');
+const syncGistBtn = document.getElementById('sync-gist-btn');
 const shareQrBtn = document.getElementById('share-qr-btn');
 const qrModal = document.getElementById('qr-modal');
 const qrCode = document.getElementById('qr-code');
@@ -26,9 +29,28 @@ const nextQuizBtn = document.getElementById('next-quiz-btn');
 const startQuizBtn = document.getElementById('start-quiz-btn');
 const quizProgressBar = document.getElementById('quiz-progress-bar');
 const navBtns = document.querySelectorAll('.nav-btn');
+const loginBtn = document.getElementById('login-btn');
+const userInfo = document.getElementById('user-info');
+const sortSelect = document.getElementById('sort-select');
 
 let currentQuizWord = null;
 let quizWords = [];
+let currentUser = null;
+
+// Firebase init
+const firebaseConfig = {
+  // Вставь свой config здесь!
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
 function initTheme() {
   if (localStorage.getItem('theme') === 'light') {
@@ -111,12 +133,20 @@ function renderWordCard(data) {
     <button class="add-to-dict">Добавить в словарь</button>
   `;
 
-  wordCardResult.querySelector('.add-to-dict').addEventListener('click', () => dict.addWord(data));
+  wordCardResult.querySelector('.add-to-dict').addEventListener('click', () => {
+    if (currentUser) dict.addWord(data, currentUser.uid);
+  });
   wordCardResult.style.display = 'block';
 }
 
 function renderWordsList() {
-  const words = dict.getWords();
+  if (!currentUser) {
+    wordsList.innerHTML = '<p>Залогиньтесь для просмотра словаря.</p>';
+    return;
+  }
+
+  const sortedBy = sortSelect.value;
+  const words = dict.getWords(sortedBy);
   wordsList.innerHTML = '';
   if (!words.length) {
     emptyDict.style.display = 'block';
@@ -130,16 +160,24 @@ function renderWordsList() {
     item.innerHTML = `
       <div class="word-item-title">${word.word}</div>
       <div class="word-item-translation">${word.translation}</div>
-      <button class="delete-btn" style="float: right; background: none; border: none; cursor: pointer; color: red;">🗑️</button>
+      <button class="edit-btn" style="background: none; border: none; cursor: pointer; color: blue;">✏️</button>
+      <button class="delete-btn" style="background: none; border: none; cursor: pointer; color: red;">🗑️</button>
     `;
     item.querySelector('.delete-btn').addEventListener('click', () => {
       if (confirm(`Удалить слово "${word.word}"?`)) {
-        dict.removeWord(word.id);
+        dict.removeWord(word.id, currentUser.uid);
+        renderWordsList();
+      }
+    });
+    item.querySelector('.edit-btn').addEventListener('click', () => {
+      const newTrans = prompt('Новый перевод:', word.translation);
+      if (newTrans) {
+        dict.updateTranslation(word.id, newTrans, currentUser.uid);
         renderWordsList();
       }
     });
     item.addEventListener('click', (e) => {
-      if (e.target.className !== 'delete-btn') {
+      if (!e.target.classList.contains('edit-btn') && !e.target.classList.contains('delete-btn')) {
         lookupInput.value = word.word;
         handleLookup();
         switchView('lookup');
@@ -151,17 +189,21 @@ function renderWordsList() {
 
 function setupImportExport() {
   exportBtn.addEventListener('click', () => {
+    if (!currentUser) return alert('Залогиньтесь.');
     const json = dict.export();
     downloadJSON(json, 'dictionary.json');
   });
 
-  importBtn.addEventListener('click', () => importFile.click());
+  importBtn.addEventListener('click', () => {
+    if (!currentUser) return alert('Залогиньтесь.');
+    importFile.click();
+  });
   importFile.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const success = dict.import(ev.target.result);
+      const success = dict.import(ev.target.result, currentUser.uid);
       if (success) {
         renderWordsList();
         alert('Импорт успешен!');
@@ -171,10 +213,29 @@ function setupImportExport() {
     };
     reader.readAsText(file);
   });
+
+  exportGistBtn.addEventListener('click', async () => {
+    if (!currentUser) return alert('Залогиньтесь.');
+    await dict.exportToGist(currentUser.uid);
+    renderWordsList();
+  });
+
+  importGistBtn.addEventListener('click', async () => {
+    if (!currentUser) return alert('Залогиньтесь.');
+    await dict.importFromGist(currentUser.uid);
+    renderWordsList();
+  });
+
+  syncGistBtn.addEventListener('click', async () => {
+    if (!currentUser) return alert('Залогиньтесь.');
+    await dict.syncWithGist(currentUser.uid);
+    renderWordsList();
+  });
 }
 
 function setupQR() {
   shareQrBtn.addEventListener('click', () => {
+    if (!currentUser) return alert('Залогиньтесь.');
     const json = dict.export();
     if (json.length > 2000) {
       alert('Словарь слишком большой для QR. Используйте экспорт в файл.');
@@ -191,6 +252,13 @@ function setupQR() {
 }
 
 function loadQuiz() {
+  if (!currentUser) {
+    quizContainer.style.display = 'none';
+    quizStart.innerHTML = '<p>Залогиньтесь для тренировки.</p>';
+    quizStart.style.display = 'block';
+    return;
+  }
+
   const allWords = dict.getWords();
   if (!allWords.length) {
     quizContainer.style.display = 'none';
@@ -261,8 +329,8 @@ function handleQuizAnswer(e) {
     }
   });
   
-  const grade = isCorrect ? 2 : 0; // Can extend to hard/easy later
-  dict.updateSRS(currentQuizWord.id, grade);
+  const grade = isCorrect ? 2 : 0;
+  dict.updateSRS(currentQuizWord.id, grade, currentUser.uid);
   nextQuizBtn.disabled = false;
 }
 
@@ -288,7 +356,30 @@ document.addEventListener('DOMContentLoaded', () => {
     showNextQuizQuestion();
   });
   
-  startQuizBtn.addEventListener('click', loadQuiz);
-  
-  renderWordsList();
+  sortSelect.addEventListener('change', renderWordsList);
+
+  // Auth
+  loginBtn.addEventListener('click', () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(e => alert('Ошибка логина: ' + e.message));
+  });
+
+  auth.onAuthStateChanged(async user => {
+    currentUser = user;
+    if (user) {
+      loginBtn.style.display = 'none';
+      userInfo.textContent = `Logged in as ${user.displayName}`;
+      await dict.load(user.uid);
+      // Автоматический импорт из Gist при логине, если gistId есть (для синхронизации)
+      if (dict.gistId) {
+        await dict.importFromGist(user.uid);
+      }
+      renderWordsList();
+    } else {
+      loginBtn.style.display = 'block';
+      userInfo.textContent = '';
+      dict.words = [];
+      renderWordsList();
+    }
+  });
 });
