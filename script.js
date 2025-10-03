@@ -2,20 +2,6 @@ import { Dictionary } from './dictionary.js';
 import { lookupWord } from './lookup.js';
 import { downloadJSON, generateQR } from './utils.js';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBPRhzr9tXeD6xKhIxBrzzOaf_IR9pcPpE",
-  authDomain: "clindan-e064c.firebaseapp.com",
-  projectId: "clindan-e064c",
-  storageBucket: "clindan-e064c.firebasestorage.app",
-  messagingSenderId: "425082439193",
-  appId: "1:425082439193:web:c2e23a4cef0b8d04d20c88",
-  measurementId: "G-WF2ZW9MQLQ"
-};
-
-const app = firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-
 const dict = new Dictionary();
 
 const themeToggle = document.getElementById('theme-toggle');
@@ -28,9 +14,6 @@ const emptyDict = document.getElementById('empty-dict');
 const exportBtn = document.getElementById('export-btn');
 const importBtn = document.getElementById('import-btn');
 const importFile = document.getElementById('import-file');
-const exportGistBtn = document.getElementById('export-gist-btn');
-const importGistBtn = document.getElementById('import-gist-btn');
-const syncGistBtn = document.getElementById('sync-gist-btn');
 const shareQrBtn = document.getElementById('share-qr-btn');
 const qrModal = document.getElementById('qr-modal');
 const qrCode = document.getElementById('qr-code');
@@ -43,13 +26,9 @@ const nextQuizBtn = document.getElementById('next-quiz-btn');
 const startQuizBtn = document.getElementById('start-quiz-btn');
 const quizProgressBar = document.getElementById('quiz-progress-bar');
 const navBtns = document.querySelectorAll('.nav-btn');
-const loginBtn = document.getElementById('login-btn');
-const userInfo = document.getElementById('user-info');
-const sortSelect = document.getElementById('sort-select');
 
 let currentQuizWord = null;
 let quizWords = [];
-let currentUser = null;
 
 function initTheme() {
   if (localStorage.getItem('theme') === 'light') {
@@ -132,20 +111,12 @@ function renderWordCard(data) {
     <button class="add-to-dict">Добавить в словарь</button>
   `;
 
-  wordCardResult.querySelector('.add-to-dict').addEventListener('click', () => {
-    if (currentUser) dict.addWord(data, currentUser.uid);
-  });
+  wordCardResult.querySelector('.add-to-dict').addEventListener('click', () => dict.addWord(data));
   wordCardResult.style.display = 'block';
 }
 
 function renderWordsList() {
-  if (!currentUser) {
-    wordsList.innerHTML = '<p>Залогиньтесь для просмотра словаря.</p>';
-    return;
-  }
-
-  const sortedBy = sortSelect.value;
-  const words = dict.getWords(sortedBy);
+  const words = dict.getWords();
   wordsList.innerHTML = '';
   if (!words.length) {
     emptyDict.style.display = 'block';
@@ -163,7 +134,7 @@ function renderWordsList() {
     `;
     item.querySelector('.delete-btn').addEventListener('click', () => {
       if (confirm(`Удалить слово "${word.word}"?`)) {
-        dict.removeWord(word.id, currentUser.uid);
+        dict.removeWord(word.id);
         renderWordsList();
       }
     });
@@ -283,3 +254,41 @@ function handleQuizAnswer(e) {
   
   buttons.forEach(btn => {
     btn.disabled = true;
+    if (btn.dataset.correct === 'true') {
+      btn.classList.add('correct');
+    } else if (btn === e.target && !isCorrect) {
+      btn.classList.add('incorrect');
+    }
+  });
+  
+  const grade = isCorrect ? 2 : 0; // Can extend to hard/easy later
+  dict.updateSRS(currentQuizWord.id, grade);
+  nextQuizBtn.disabled = false;
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  themeToggle.addEventListener('click', toggleTheme);
+  
+  navBtns.forEach(btn => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+  
+  searchBtn.addEventListener('click', handleLookup);
+  lookupInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLookup();
+  });
+  
+  setupImportExport();
+  setupQR();
+  
+  nextQuizBtn.addEventListener('click', () => {
+    nextQuizBtn.disabled = true;
+    showNextQuizQuestion();
+  });
+  
+  startQuizBtn.addEventListener('click', loadQuiz);
+  
+  renderWordsList();
+});
