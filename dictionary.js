@@ -1,5 +1,6 @@
 export class Dictionary {
-  constructor() {
+  constructor(db) {
+    this.db = db;
     this.storageKey = 'english_dict_v1'; // Для локального бэкапа, если нужно
     this.words = [];
     this.gistId = null; // Для GitHub Gist
@@ -8,10 +9,10 @@ export class Dictionary {
 
   async load(uid) {
     try {
-      const snapshot = await db.collection(`users/${uid}/words`).get();
+      const snapshot = await this.db.collection(`users/${uid}/words`).get();
       this.words = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       // Загрузка gistId из user settings
-      const userDoc = await db.doc(`users/${uid}`).get();
+      const userDoc = await this.db.doc(`users/${uid}`).get();
       if (userDoc.exists) {
         this.gistId = userDoc.data().gistId || null;
       }
@@ -23,15 +24,15 @@ export class Dictionary {
 
   async save(uid) {
     try {
-      const batch = db.batch();
+      const batch = this.db.batch();
       this.words.forEach(word => {
-        const docRef = db.collection(`users/${uid}/words`).doc(word.id);
+        const docRef = this.db.collection(`users/${uid}/words`).doc(word.id);
         batch.set(docRef, word);
       });
       await batch.commit();
       // Сохраняем gistId, если есть
       if (this.gistId) {
-        await db.doc(`users/${uid}`).set({ gistId: this.gistId }, { merge: true });
+        await this.db.doc(`users/${uid}`).set({ gistId: this.gistId }, { merge: true });
       }
     } catch (e) {
       console.error('Save error:', e);
@@ -192,9 +193,11 @@ export class Dictionary {
     }
 
     try {
-      const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-        headers: { 'Authorization': `token ${this.githubToken}` } // Token optional for public, but use if private
-      });
+      const headers = {};
+      if (this.githubToken) {
+        headers['Authorization'] = `token ${this.githubToken}`;
+      }
+      const response = await fetch(`https://api.github.com/gists/${gistId}`, { headers });
 
       if (response.ok) {
         const data = await response.json();
