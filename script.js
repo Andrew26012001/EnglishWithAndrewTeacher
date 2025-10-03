@@ -1,11 +1,7 @@
 import { Dictionary } from './dictionary.js';
 import { lookupWord } from './lookup.js';
 import { downloadJSON, generateQR } from './utils.js';
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, getDocs, doc, getDoc, writeBatch, setDoc } from 'firebase/firestore';
 
-// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyBPRhzr9tXeD6xKhIxBrzzOaf_IR9pcPpE",
   authDomain: "clindan-e064c.firebaseapp.com",
@@ -16,11 +12,11 @@ const firebaseConfig = {
   measurementId: "G-WF2ZW9MQLQ"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const app = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-const dict = new Dictionary(db);
+const dict = new Dictionary();
 
 const themeToggle = document.getElementById('theme-toggle');
 const lookupInput = document.getElementById('lookup-input');
@@ -90,7 +86,6 @@ async function handleLookup() {
     const data = await lookupWord(word);
     renderWordCard(data);
   } catch (error) {
-    console.error('Lookup error:', error);
     wordCardResult.innerHTML = `<p style="color: red;">${error.message}</p>`;
     wordCardResult.style.display = 'block';
   } finally {
@@ -138,11 +133,7 @@ function renderWordCard(data) {
   `;
 
   wordCardResult.querySelector('.add-to-dict').addEventListener('click', () => {
-    if (currentUser) {
-      dict.addWord(data, currentUser.uid);
-    } else {
-      alert('Залогиньтесь для добавления.');
-    }
+    if (currentUser) dict.addWord(data, currentUser.uid);
   });
   wordCardResult.style.display = 'block';
 }
@@ -168,8 +159,7 @@ function renderWordsList() {
     item.innerHTML = `
       <div class="word-item-title">${word.word}</div>
       <div class="word-item-translation">${word.translation}</div>
-      <button class="edit-btn" style="background: none; border: none; cursor: pointer; color: blue;">✏️</button>
-      <button class="delete-btn" style="background: none; border: none; cursor: pointer; color: red;">🗑️</button>
+      <button class="delete-btn" style="float: right; background: none; border: none; cursor: pointer; color: red;">🗑️</button>
     `;
     item.querySelector('.delete-btn').addEventListener('click', () => {
       if (confirm(`Удалить слово "${word.word}"?`)) {
@@ -177,15 +167,8 @@ function renderWordsList() {
         renderWordsList();
       }
     });
-    item.querySelector('.edit-btn').addEventListener('click', () => {
-      const newTrans = prompt('Новый перевод:', word.translation);
-      if (newTrans) {
-        dict.updateTranslation(word.id, newTrans, currentUser.uid);
-        renderWordsList();
-      }
-    });
     item.addEventListener('click', (e) => {
-      if (!e.target.classList.contains('edit-btn') && !e.target.classList.contains('delete-btn')) {
+      if (e.target.className !== 'delete-btn') {
         lookupInput.value = word.word;
         handleLookup();
         switchView('lookup');
@@ -197,21 +180,17 @@ function renderWordsList() {
 
 function setupImportExport() {
   exportBtn.addEventListener('click', () => {
-    if (!currentUser) return alert('Залогиньтесь.');
     const json = dict.export();
     downloadJSON(json, 'dictionary.json');
   });
 
-  importBtn.addEventListener('click', () => {
-    if (!currentUser) return alert('Залогиньтесь.');
-    importFile.click();
-  });
+  importBtn.addEventListener('click', () => importFile.click());
   importFile.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const success = dict.import(ev.target.result, currentUser.uid);
+      const success = dict.import(ev.target.result);
       if (success) {
         renderWordsList();
         alert('Импорт успешен!');
@@ -221,29 +200,10 @@ function setupImportExport() {
     };
     reader.readAsText(file);
   });
-
-  exportGistBtn.addEventListener('click', async () => {
-    if (!currentUser) return alert('Залогиньтесь.');
-    await dict.exportToGist(currentUser.uid);
-    renderWordsList();
-  });
-
-  importGistBtn.addEventListener('click', async () => {
-    if (!currentUser) return alert('Залогиньтесь.');
-    await dict.importFromGist(currentUser.uid);
-    renderWordsList();
-  });
-
-  syncGistBtn.addEventListener('click', async () => {
-    if (!currentUser) return alert('Залогиньтесь.');
-    await dict.syncWithGist(currentUser.uid);
-    renderWordsList();
-  });
 }
 
 function setupQR() {
   shareQrBtn.addEventListener('click', () => {
-    if (!currentUser) return alert('Залогиньтесь.');
     const json = dict.export();
     if (json.length > 2000) {
       alert('Словарь слишком большой для QR. Используйте экспорт в файл.');
@@ -260,13 +220,6 @@ function setupQR() {
 }
 
 function loadQuiz() {
-  if (!currentUser) {
-    quizContainer.style.display = 'none';
-    quizStart.innerHTML = '<p>Залогиньтесь для тренировки.</p>';
-    quizStart.style.display = 'block';
-    return;
-  }
-
   const allWords = dict.getWords();
   if (!allWords.length) {
     quizContainer.style.display = 'none';
@@ -330,73 +283,3 @@ function handleQuizAnswer(e) {
   
   buttons.forEach(btn => {
     btn.disabled = true;
-    if (btn.dataset.correct === 'true') {
-      btn.classList.add('correct');
-    } else if (btn === e.target && !isCorrect) {
-      btn.classList.add('incorrect');
-    }
-  });
-  
-  const grade = isCorrect ? 2 : 0;
-  dict.updateSRS(currentQuizWord.id, grade, currentUser.uid);
-  nextQuizBtn.disabled = false;
-}
-
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('App loaded');
-  initTheme();
-  themeToggle.addEventListener('click', toggleTheme);
-  
-  navBtns.forEach(btn => {
-    btn.addEventListener('click', () => switchView(btn.dataset.view));
-  });
-  
-  searchBtn.addEventListener('click', handleLookup);
-  lookupInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') handleLookup();
-  });
-  
-  setupImportExport();
-  setupQR();
-  
-  nextQuizBtn.addEventListener('click', () => {
-    nextQuizBtn.disabled = true;
-    showNextQuizQuestion();
-  });
-  
-  sortSelect.addEventListener('change', renderWordsList);
-
-  // Auth
-  loginBtn.addEventListener('click', async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (e) {
-      console.error('Login error:', e);
-      alert('Ошибка логина: ' + e.message);
-    }
-  });
-
-  onAuthStateChanged(auth, async user => {
-    currentUser = user;
-    if (user) {
-      loginBtn.style.display = 'none';
-      userInfo.textContent = `Logged in as ${user.displayName}`;
-      try {
-        await dict.load(user.uid);
-        if (dict.gistId) {
-          await dict.importFromGist(user.uid);
-        }
-      } catch (e) {
-        console.error('Auth load error:', e);
-      }
-      renderWordsList();
-    } else {
-      loginBtn.style.display = 'block';
-      userInfo.textContent = '';
-      dict.words = [];
-      renderWordsList();
-    }
-  });
-});
