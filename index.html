@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0f0f11" />
   <title>English Dictionary</title>
@@ -54,6 +54,7 @@
           <input type="file" id="import-file" accept=".json" style="display: none;">
           <button id="export-gist-btn" class="btn">📤 Экспорт в GitHub Gist</button>
           <button id="import-gist-btn" class="btn">📥 Импорт из GitHub Gist</button>
+          <button id="sync-gist-btn" class="btn">🔄 Синхронизировать с Gist</button>
           <button id="share-qr-btn" class="btn">🔗 QR-код</button>
         </div>
         <div id="words-list" class="words-grid"></div>
@@ -87,6 +88,6 @@
     </main>
   </div>
 
-  <script type="module" src="app.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>
