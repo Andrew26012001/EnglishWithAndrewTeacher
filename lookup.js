@@ -3,6 +3,7 @@ export async function lookupWord(word) {
   
   const cleanWord = word.trim().toLowerCase();
   
+  // Direct fetch to Dictionary API (CORS allowed)
   const apiUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleanWord)}`;
   
   let entry = { word: cleanWord.charAt(0).toUpperCase() + cleanWord.slice(1), phonetic: '', audioUrl: '', meanings: [], synonyms: [] };
@@ -17,6 +18,7 @@ export async function lookupWord(word) {
     }
   } catch (error) {
     console.warn('Dictionary API failed:', error);
+    // Continue with translation and suggestions
   }
   
   const transResult = await getTranslations(cleanWord);
@@ -25,7 +27,7 @@ export async function lookupWord(word) {
     word: entry.word,
     phonetic: entry.phonetic || '',
     audioUrl: entry.phonetics?.find(p => p.audio)?.audio || '',
-    translation: transResult.translation.join(' / '),
+    translation: transResult.translation,
     meanings: entry.meanings || [],
     synonyms: entry.synonyms || [],
     ...(transResult.suggestions && { suggestions: transResult.suggestions })
@@ -36,6 +38,7 @@ async function getTranslations(word) {
   let translations = [];
   let suggestions = [];
 
+  // Try Lingva.ml first
   try {
     const lingvaUrl = `https://lingva.ml/api/v1/en/ru/${encodeURIComponent(word)}`;
     const lingvaRes = await fetch(lingvaUrl, { signal: AbortSignal.timeout(5000) });
@@ -51,6 +54,7 @@ async function getTranslations(word) {
     console.warn('Lingva.ml failed:', error);
   }
 
+  // Fallback to MyMemory
   try {
     const myMemoryUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|ru`;
     const myMemoryRes = await fetch(myMemoryUrl, { signal: AbortSignal.timeout(5000) });
@@ -68,13 +72,14 @@ async function getTranslations(word) {
     console.warn('MyMemory failed:', error);
   }
 
+  // If no translation, get suggestions from Datamuse
   try {
     const spUrl = `https://api.datamuse.com/words?sp=${encodeURIComponent(word)}&max=3`;
     const spRes = await fetch(spUrl);
     const spData = await spRes.json();
     suggestions = suggestions.concat(spData.map(item => item.word));
   } catch (e) {}
-
+  
   try {
     const mlUrl = `https://api.datamuse.com/words?ml=${encodeURIComponent(word)}&max=3`;
     const mlRes = await fetch(mlUrl);
@@ -82,7 +87,7 @@ async function getTranslations(word) {
     suggestions = suggestions.concat(mlData.map(item => item.word));
   } catch (e) {}
 
-  return { translation: translations, suggestions: suggestions.filter((v, i, a) => a.indexOf(v) === i) };
+  return { translation: translations, suggestions: suggestions.filter((v, i, a) => a.indexOf(v) === i) }; // Unique suggestions
 }
 
 export async function getSynonyms(word) {
