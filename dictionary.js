@@ -1,24 +1,19 @@
 export class Dictionary {
-  constructor(db) {
-    this.db = db;
-    this.storageKey = 'english_dict_v1'; // Для локального бэкапа, если нужно
+  constructor() {
+    this.storageKey = 'english_dict_v1';
     this.words = [];
-    this.gistId = null; // Для GitHub Gist
+    this.gistId = null;
     this.githubToken = localStorage.getItem('github_token') || null;
   }
 
   async load(uid) {
     try {
-      const wordsRef = collection(this.db, `users/${uid}/words`);
-      const snapshot = await getDocs(wordsRef);
+      const snapshot = await firebase.firestore().collection(`users/${uid}/words`).get();
       this.words = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // Загрузка gistId из user settings
-      const userRef = doc(this.db, `users/${uid}`);
-      const userDoc = await getDoc(userRef);
-      if (userDoc.exists()) {
+      const userDoc = await firebase.firestore().doc(`users/${uid}`).get();
+      if (userDoc.exists) {
         this.gistId = userDoc.data().gistId || null;
       }
-      console.log('Loaded words:', this.words.length);
     } catch (e) {
       console.error('Load error:', e);
       this.words = [];
@@ -27,18 +22,15 @@ export class Dictionary {
 
   async save(uid) {
     try {
-      const batch = writeBatch(this.db);
+      const batch = firebase.firestore().batch();
       this.words.forEach(word => {
-        const docRef = doc(this.db, `users/${uid}/words`, word.id);
+        const docRef = firebase.firestore().collection(`users/${uid}/words`).doc(word.id);
         batch.set(docRef, word);
       });
       await batch.commit();
-      // Сохраняем gistId, если есть
       if (this.gistId) {
-        const userRef = doc(this.db, `users/${uid}`);
-        await setDoc(userRef, { gistId: this.gistId }, { merge: true });
+        await firebase.firestore().doc(`users/${uid}`).set({ gistId: this.gistId }, { merge: true });
       }
-      console.log('Saved words:', this.words.length);
     } catch (e) {
       console.error('Save error:', e);
     }
@@ -46,7 +38,7 @@ export class Dictionary {
 
   addWord(wordData, uid) {
     const existing = this.words.find(w => w.word.toLowerCase() === wordData.word.toLowerCase());
-    if (existing) return; // Prevent duplicates
+    if (existing) return;
 
     const now = Date.now();
     const word = {
@@ -101,7 +93,7 @@ export class Dictionary {
     const day = 24 * 60 * 60 * 1000;
     const now = Date.now();
 
-    if (grade <= 0) { // Wrong or hard wrong
+    if (grade <= 0) {
       word.interval = 1;
       word.ease = Math.max(1.3, word.ease - 0.2);
       word.repetitions = 0;
@@ -110,7 +102,7 @@ export class Dictionary {
       else if (word.repetitions === 1) word.interval = 6;
       else word.interval = Math.round(word.interval * word.ease);
       
-      word.ease += (grade === 2 ? 0.15 : 0); // +0.15 for easy, 0 for hard correct
+      word.ease += (grade === 2 ? 0.15 : 0);
       word.repetitions += 1;
     }
 
@@ -126,7 +118,6 @@ export class Dictionary {
     try {
       const data = JSON.parse(jsonString);
       if (Array.isArray(data.words)) {
-        // Merge: add new, skip duplicates
         data.words.forEach(newWord => {
           if (!this.words.find(w => w.word.toLowerCase() === newWord.word.toLowerCase())) {
             this.words.push(newWord);
@@ -158,14 +149,12 @@ export class Dictionary {
     try {
       let response;
       if (this.gistId) {
-        // Update existing Gist
         response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
           method: 'PATCH',
           headers: { 'Authorization': `token ${this.githubToken}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(body)
         });
       } else {
-        // Create new Gist
         response = await fetch('https://api.github.com/gists', {
           method: 'POST',
           headers: { 'Authorization': `token ${this.githubToken}`, 'Content-Type': 'application/json' },
@@ -176,7 +165,7 @@ export class Dictionary {
       if (response.ok) {
         const data = await response.json();
         this.gistId = data.id;
-        this.save(uid); // Save gistId to Firestore
+        this.save(uid);
         alert(`Экспорт успешен! Gist URL: ${data.html_url}`);
       } else {
         alert('Ошибка экспорта в Gist. Проверьте токен.');
@@ -192,7 +181,7 @@ export class Dictionary {
     if (!gistId) {
       const gistUrlOrId = prompt('Введите ID или URL GitHub Gist:');
       if (!gistUrlOrId) return;
-      gistId = gistUrlOrId.split('/').pop(); // Extract ID from URL if needed
+      gistId = gistUrlOrId.split('/').pop();
       this.gistId = gistId;
       this.save(uid);
     }
@@ -229,9 +218,7 @@ export class Dictionary {
       localStorage.setItem('github_token', this.githubToken);
     }
 
-    // Импорт (merge) из Gist
     await this.importFromGist(uid);
-    // Экспорт обратно в Gist для синхронизации
     await this.exportToGist(uid);
     alert('Синхронизация с Gist завершена!');
   }
