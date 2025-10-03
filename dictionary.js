@@ -1,24 +1,44 @@
 export class Dictionary {
   constructor() {
-    this.storageKey = 'english_dict_v1';
+    this.storageKey = 'english_dict_v1'; // Для локального бэкапа, если нужно
     this.words = [];
-    this.load();
+    this.gistId = null; // Для GitHub Gist
+    this.githubToken = localStorage.getItem('github_token') || null;
   }
 
-  load() {
+  async load(uid) {
     try {
-      const data = localStorage.getItem(this.storageKey);
-      this.words = data ? JSON.parse(data) : [];
+      const snapshot = await db.collection(`users/${uid}/words`).get();
+      this.words = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Загрузка gistId из user settings
+      const userDoc = await db.doc(`users/${uid}`).get();
+      if (userDoc.exists) {
+        this.gistId = userDoc.data().gistId || null;
+      }
     } catch (e) {
+      console.error('Load error:', e);
       this.words = [];
     }
   }
 
-  save() {
-    localStorage.setItem(this.storageKey, JSON.stringify(this.words));
+  async save(uid) {
+    try {
+      const batch = db.batch();
+      this.words.forEach(word => {
+        const docRef = db.collection(`users/${uid}/words`).doc(word.id);
+        batch.set(docRef, word);
+      });
+      await batch.commit();
+      // Сохраняем gistId, если есть
+      if (this.gistId) {
+        await db.doc(`users/${uid}`).set({ gistId: this.gistId }, { merge: true });
+      }
+    } catch (e) {
+      console.error('Save error:', e);
+    }
   }
 
-  addWord(wordData) {
+  addWord(wordData, uid) {
     const existing = this.words.find(w => w.word.toLowerCase() === wordData.word.toLowerCase());
     if (existing) return; // Prevent duplicates
 
@@ -33,16 +53,34 @@ export class Dictionary {
       repetitions: 0
     };
     this.words.push(word);
-    this.save();
+    this.save(uid);
   }
 
-  removeWord(id) {
+  removeWord(id, uid) {
     this.words = this.words.filter(w => w.id !== id);
-    this.save();
+    this.save(uid);
   }
 
-  getWords() {
-    return [...this.words];
+  updateTranslation(id, newTranslation, uid) {
+    const word = this.words.find(w => w.id === id);
+    if (word) {
+      word.translation = newTranslation;
+      this.save(uid);
+    }
+  }
+
+  getWords(sortedBy = 'createdAt') {
+    let sorted = [...this.words];
+    if (sortedBy === 'createdAt') {
+      sorted.sort((a, b) => b.createdAt - a.createdAt);
+    } else if (sortedBy === 'word') {
+      sorted.sort((a, b) => a.word.localeCompare(b.word));
+    } else if (sortedBy === 'ease') {
+      sorted.sort((a, b) => a.ease - b.ease);
+    } else if (sortedBy === 'interval') {
+      sorted.sort((a, b) => a.interval - b.interval);
+    }
+    return sorted;
   }
 
   getWordsDue() {
@@ -50,7 +88,7 @@ export class Dictionary {
     return this.words.filter(w => w.nextReview <= now);
   }
 
-  updateSRS(id, grade) {
+  updateSRS(id, grade, uid) {
     const word = this.words.find(w => w.id === id);
     if (!word) return;
 
@@ -71,14 +109,14 @@ export class Dictionary {
     }
 
     word.nextReview = now + word.interval * day;
-    this.save();
+    this.save(uid);
   }
 
   export() {
     return JSON.stringify({ words: this.words }, null, 2);
   }
 
-  import(jsonString) {
+  import(jsonString, uid) {
     try {
       const data = JSON.parse(jsonString);
       if (Array.isArray(data.words)) {
@@ -88,12 +126,89 @@ export class Dictionary {
             this.words.push(newWord);
           }
         });
-        this.save();
+        this.save(uid);
         return true;
       }
     } catch (e) {
       console.error('Import error:', e);
     }
     return false;
+  }
+
+  async exportToGist(uid) {
+    if (!this.githubToken) {
+      this.githubToken = prompt('Введите GitHub Personal Access Token (с scope "gist"):');
+      if (!this.githubToken) return;
+      localStorage.setItem('github_token', this.githubToken);
+    }
+
+    const json = this.export();
+    const body = {
+      description: 'English Dictionary Backup',
+      public: false,
+      files: { 'dictionary.json': { content: json } }
+    };
+
+    try {
+      let response;
+      if (this.gistId) {
+        // Update existing Gist
+        response = await fetch(`https://api.github.com/gists/${this.gistId}`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `token ${this.githubToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+      } else {
+        // Create new Gist
+        response = await fetch('https://api.github.com/gists', {
+          method: 'POST',
+          headers: { 'Authorization': `token ${this.githubToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+      }
+
+      if (response.ok) {
+        const data = await response.json();
+        this.gistId = data.id;
+        this.save(uid); // Save gistId to Firestore
+        alert(`Экспорт успешен! Gist URL: ${data.html_url}`);
+      } else {
+        alert('Ошибка экспорта в Gist. Проверьте токен.');
+      }
+    } catch (e) {
+      console.error('Gist export error:', e);
+      alert('Ошибка соединения.');
+    }
+  }
+
+  async importFromGist(uid) {
+    const gistUrlOrId = prompt('Введите ID или URL GitHub Gist:');
+    if (!gistUrlOrId) return;
+
+    const gistId = gistUrlOrId.split('/').pop(); // Extract ID from URL if needed
+
+    try {
+      const response = await fetch(`https://api.github.com/gists/${gistId}`, {
+        headers: { 'Authorization': `token ${this.githubToken}` } // Token optional for public, but use if private
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const fileContent = data.files['dictionary.json']?.content;
+        if (fileContent) {
+          this.import(fileContent, uid);
+          this.gistId = gistId;
+          this.save(uid);
+          alert('Импорт из Gist успешен!');
+        } else {
+          alert('Нет файла dictionary.json в Gist.');
+        }
+      } else {
+        alert('Ошибка импорта из Gist. Проверьте ID/токен.');
+      }
+    } catch (e) {
+      console.error('Gist import error:', e);
+      alert('Ошибка соединения.');
+    }
   }
 }
