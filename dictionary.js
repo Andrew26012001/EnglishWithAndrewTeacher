@@ -18,6 +18,7 @@ export class Dictionary {
       if (userDoc.exists()) {
         this.gistId = userDoc.data().gistId || null;
       }
+      console.log('Loaded words:', this.words.length);
     } catch (e) {
       console.error('Load error:', e);
       this.words = [];
@@ -37,6 +38,7 @@ export class Dictionary {
         const userRef = doc(this.db, `users/${uid}`);
         await setDoc(userRef, { gistId: this.gistId }, { merge: true });
       }
+      console.log('Saved words:', this.words.length);
     } catch (e) {
       console.error('Save error:', e);
     }
