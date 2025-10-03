@@ -1,4 +1,3 @@
-// Без изменений
 export async function lookupWord(word) {
   if (!word?.trim()) throw new Error('Empty word');
   
@@ -26,7 +25,7 @@ export async function lookupWord(word) {
     word: entry.word,
     phonetic: entry.phonetic || '',
     audioUrl: entry.phonetics?.find(p => p.audio)?.audio || '',
-    translation: transResult.translation.join(' / '), // Join array for better display
+    translation: transResult.translation.join(' / '),
     meanings: entry.meanings || [],
     synonyms: entry.synonyms || [],
     ...(transResult.suggestions && { suggestions: transResult.suggestions })
