@@ -1,93 +1,78 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css" />
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0f0f11" />
-  <title>English Dictionary</title>
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js"></script>
-</head>
-<body>
-  <div class="app-container">
-    <header>
-      <h1>📘 English Dictionary</h1>
-      <button id="theme-toggle" class="btn-icon" aria-label="Сменить тему">
-        <span class="icon">🌙</span>
-      </button>
-      <button id="login-btn" class="btn">Login with Google</button>
-      <p id="user-info"></p>
-    </header>
-
-    <main class="content">
-      <nav class="main-nav">
-        <button class="nav-btn active" data-view="lookup">🔍 Слово</button>
-        <button class="nav-btn" data-view="dictionary">📚 Словарь</button>
-        <button class="nav-btn" data-view="quiz">🎮 Тренировка</button>
-      </nav>
-
-      <!-- Поиск -->
-      <section id="lookup-view" class="view active">
-        <div class="search-container">
-          <input type="text" id="lookup-input" placeholder="Введите слово или фразу (например: look forward to)" autocomplete="off">
-          <button id="search-btn" class="btn">Поиск</button>
-        </div>
-        <div id="lookup-loader" class="loader" style="display: none;">Загрузка...</div>
-        <div id="word-card-result" class="card" style="display: none;"></div>
-      </section>
-
-      <!-- Словарь -->
-      <section id="dictionary-view" class="view">
-        <div class="actions">
-          <select id="sort-select">
-            <option value="createdAt">По дате добавления (новые сверху)</option>
-            <option value="word">По алфавиту</option>
-            <option value="ease">По лёгкости (возрастание)</option>
-            <option value="interval">По интервалу (возрастание)</option>
-          </select>
-          <button id="export-btn" class="btn">📤 Экспорт JSON</button>
-          <button id="import-btn" class="btn">📥 Импорт JSON</button>
-          <input type="file" id="import-file" accept=".json" style="display: none;">
-          <button id="export-gist-btn" class="btn">📤 Экспорт в GitHub Gist</button>
-          <button id="import-gist-btn" class="btn">📥 Импорт из GitHub Gist</button>
-          <button id="sync-gist-btn" class="btn">🔄 Синхронизировать с Gist</button>
-          <button id="share-qr-btn" class="btn">🔗 QR-код</button>
-        </div>
-        <div id="words-list" class="words-grid"></div>
-        <p id="empty-dict" class="empty-state">Словарь пуст.</p>
-      </section>
-
-      <!-- Квиз -->
-      <section id="quiz-view" class="view">
-        <div id="quiz-container" style="display: none;">
-          <div class="progress-bar-container">
-            <div class="progress-bar" id="quiz-progress-bar"></div>
-          </div>
-          <h2 id="quiz-question"></h2>
-          <div id="quiz-answers" class="answers-grid"></div>
-          <button id="next-quiz-btn" class="btn" disabled>Далее</button>
-        </div>
-        <div id="quiz-start" class="empty-state">
-          <p>Нет слов для повторения.</p>
-          <button id="start-quiz-btn" class="btn">🔄 Обновить</button>
-        </div>
-      </section>
-
-      <!-- QR Modal -->
-      <div id="qr-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-          <h3>Поделитесь словарём</h3>
-          <div id="qr-code"></div>
-          <button id="close-qr" class="btn">Закрыть</button>
-        </div>
-      </div>
-    </main>
-  </div>
-
-  <script type="module" src="script.js"></script>
-</body>
-</html>
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+	  <meta charset="UTF-8" />
+	  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	  <link rel="stylesheet" href="style.css" />
+	  <link rel="manifest" href="manifest.json" />
+	  <meta name="theme-color" content="#0f0f11" />
+	  <title>English Dictionary</title>
+	</head>
+	<body>
+	  <div class="app-container">
+	    <header>
+	      <h1>📘 English Dictionary</h1>
+	      <button id="theme-toggle" class="btn-icon" aria-label="Сменить тему">
+	        <span class="icon">🌙</span>
+	      </button>
+	    </header>
+	
+	    <main class="content">
+	      <nav class="main-nav">
+	        <button class="nav-btn active" data-view="lookup">🔍 Слово</button>
+	        <button class="nav-btn" data-view="dictionary">📚 Словарь</button>
+	        <button class="nav-btn" data-view="quiz">🎮 Тренировка</button>
+	      </nav>
+	
+	      <!-- Поиск -->
+	      <section id="lookup-view" class="view active">
+	        <div class="search-container">
+	          <input type="text" id="lookup-input" placeholder="Введите слово или фразу (например: look forward to)" autocomplete="off">
+	          <button id="search-btn" class="btn">Поиск</button>
+	        </div>
+	        <div id="lookup-loader" class="loader" style="display: none;">Загрузка...</div>
+	        <div id="word-card-result" class="card" style="display: none;"></div>
+	      </section>
+	
+	      <!-- Словарь -->
+	      <section id="dictionary-view" class="view">
+	        <div class="actions">
+	          <button id="export-btn" class="btn">📤 Экспорт</button>
+	          <button id="import-btn" class="btn">📥 Импорт</button>
+	          <input type="file" id="import-file" accept=".json" style="display: none;">
+	          <button id="share-qr-btn" class="btn">🔗 QR-код</button>
+	        </div>
+	        <div id="words-list" class="words-grid"></div>
+	        <p id="empty-dict" class="empty-state">Словарь пуст.</p>
+	      </section>
+	
+	      <!-- Квиз -->
+	      <section id="quiz-view" class="view">
+	        <div id="quiz-container" style="display: none;">
+	          <div class="progress-bar-container">
+	            <div class="progress-bar" id="quiz-progress-bar"></div>
+	          </div>
+	          <h2 id="quiz-question"></h2>
+	          <div id="quiz-answers" class="answers-grid"></div>
+	          <button id="next-quiz-btn" class="btn" disabled>Далее</button>
+	        </div>
+	        <div id="quiz-start" class="empty-state">
+	          <p>Нет слов для повторения.</p>
+	          <button id="start-quiz-btn" class="btn">🔄 Обновить</button>
+	        </div>
+	      </section>
+	
+	      <!-- QR Modal -->
+	      <div id="qr-modal" class="modal" style="display: none;">
+	        <div class="modal-content">
+	          <h3>Поделитесь словарём</h3>
+	          <div id="qr-code"></div>
+	          <button id="close-qr" class="btn">Закрыть</button>
+	        </div>
+	      </div>
+	    </main>
+	  </div>
+	
+	  <script type="module" src="script.js"></script>
+	</body>
+	</html>
