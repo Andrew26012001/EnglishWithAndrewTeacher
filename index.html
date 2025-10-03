@@ -3,10 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="styles.css" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0f0f11" />
   <title>English Dictionary</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js"></script>
 </head>
 <body>
   <div class="app-container">
@@ -15,6 +19,8 @@
       <button id="theme-toggle" class="btn-icon" aria-label="Сменить тему">
         <span class="icon">🌙</span>
       </button>
+      <button id="login-btn" class="btn">Login with Google</button>
+      <p id="user-info"></p>
     </header>
 
     <main class="content">
@@ -37,9 +43,17 @@
       <!-- Словарь -->
       <section id="dictionary-view" class="view">
         <div class="actions">
-          <button id="export-btn" class="btn">📤 Экспорт</button>
-          <button id="import-btn" class="btn">📥 Импорт</button>
+          <select id="sort-select">
+            <option value="createdAt">По дате добавления (новые сверху)</option>
+            <option value="word">По алфавиту</option>
+            <option value="ease">По лёгкости (возрастание)</option>
+            <option value="interval">По интервалу (возрастание)</option>
+          </select>
+          <button id="export-btn" class="btn">📤 Экспорт JSON</button>
+          <button id="import-btn" class="btn">📥 Импорт JSON</button>
           <input type="file" id="import-file" accept=".json" style="display: none;">
+          <button id="export-gist-btn" class="btn">📤 Экспорт в GitHub Gist</button>
+          <button id="import-gist-btn" class="btn">📥 Импорт из GitHub Gist</button>
           <button id="share-qr-btn" class="btn">🔗 QR-код</button>
         </div>
         <div id="words-list" class="words-grid"></div>
@@ -73,6 +87,6 @@
     </main>
   </div>
 
-  <script type="module" src="script.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
