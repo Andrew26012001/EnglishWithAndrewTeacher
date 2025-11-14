@@ -1,5 +1,6 @@
+// sync.js
+
 // Импортируем нужные функции из библиотеки Firebase
-// Мы используем ссылки на CDN, так как у нас нет сборщика проектов (npm/webpack)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
 import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
 
@@ -40,9 +41,10 @@ export class SyncManager {
     if (!this.userWordsRef) return;
 
     onValue(this.userWordsRef, (snapshot) => {
-      // Сработает, только если в облаке есть данные и обновление не инициировано локально
       if (snapshot.exists() && !this.isRemoteUpdateInProgress) {
-        const remoteWords = snapshot.val();
+        const remoteData = snapshot.val();
+        // Firebase может вернуть объект или массив, приводим к массиву
+        const remoteWords = Array.isArray(remoteData) ? remoteData : Object.values(remoteData);
         console.log('Получено обновление из облака:', remoteWords);
         
         if (this.onRemoteUpdate) {
@@ -54,20 +56,16 @@ export class SyncManager {
 
   // Выгружаем все локальные слова в облако
   async syncAll(localWords) {
-    if (!this.userWordsRef) {
-        return;
-    }
-    // Ставим флаг, что мы сейчас будем отправлять данные, чтобы не получать их обратно
+    if (!this.userWordsRef) return;
+    
     this.isRemoteUpdateInProgress = true; 
     console.log('Отправляем все слова в облако...');
     try {
-      // `set` полностью перезаписывает данные в облаке
       await set(this.userWordsRef, localWords); 
       console.log('Полная синхронизация завершена.');
     } catch (error) {
       console.error('Ошибка полной синхронизации:', error);
     } finally {
-      // Снимаем флаг после короткой задержки, чтобы успеть обработать возможные эхо-ответы
       setTimeout(() => { this.isRemoteUpdateInProgress = false; }, 500); 
     }
   }
