@@ -1,18 +1,27 @@
+// dictionary.js
+
 import { DB } from './db.js';
+import { SyncManager } from './sync.js';
 
 export class Dictionary {
   constructor() {
     this.db = new DB();
+    this.syncManager = new SyncManager();
     this.words = [];
   }
 
   async init() {
     await this.db.open();
     await this.load();
+    
+    // Настройка синхронизации
+    this.syncManager.init();
+    this.syncManager.setOnRemoteUpdateCallback(this.handleRemoteUpdate.bind(this));
   }
 
   async load() {
     this.words = await this.db.getAll();
+    this.words.sort((a, b) => (a.word > b.word) ? 1 : -1); // Сортируем слова
   }
 
   async addWord(wordData) {
@@ -34,13 +43,15 @@ export class Dictionary {
     };
 
     await this.db.put(word);
-    this.words.push(word);
-    console.log('Слово добавлено:', word);
+    await this.load(); // Перезагружаем и сортируем
+    await this.syncManager.syncAll(this.words);
+    console.log('Слово добавлено и синхронизировано:', word);
   }
 
   async removeWord(id) {
     await this.db.delete(id);
-    this.words = this.words.filter(w => w.id !== id);
+    await this.load();
+    await this.syncManager.syncAll(this.words);
   }
 
   getWords() {
@@ -74,6 +85,7 @@ export class Dictionary {
 
     word.nextReview = now + word.interval * day;
     await this.db.put(word);
+    await this.syncManager.syncAll(this.words);
   }
   
   export() {
@@ -97,10 +109,11 @@ export class Dictionary {
               ...newWord
             };
             await this.db.put(mergedWord);
-            this.words.push(mergedWord);
             addedCount++;
           }
         }
+        await this.load();
+        await this.syncManager.syncAll(this.words);
         console.log(`Импортировано ${addedCount} новых слов.`);
         return true;
       }
@@ -108,5 +121,38 @@ export class Dictionary {
       console.error('Ошибка импорта:', e);
     }
     return false;
+  }
+
+  async handleRemoteUpdate(remoteWords) {
+    console.log("Обработка удаленного обновления...");
+    const localWords = this.words;
+    const localWordMap = new Map(localWords.map(w => [w.id, w]));
+    const remoteWordMap = new Map(remoteWords.map(w => [w.id, w]));
+
+    let changesMade = false;
+
+    // Обновляем или добавляем слова из облака
+    for (const [id, remoteWord] of remoteWordMap) {
+      const localWord = localWordMap.get(id);
+      if (!localWord || new Date(remoteWord.createdAt) > new Date(localWord.createdAt)) {
+        await this.db.put(remoteWord);
+        changesMade = true;
+      }
+    }
+
+    // Удаляем слова, которых нет в облаке
+    for (const [id] of localWordMap) {
+      if (!remoteWordMap.has(id)) {
+        await this.db.delete(id);
+        changesMade = true;
+      }
+    }
+    
+    if (changesMade) {
+      await this.load(); 
+      if (window.renderApp) {
+        window.renderApp();
+      }
+    }
   }
 }
