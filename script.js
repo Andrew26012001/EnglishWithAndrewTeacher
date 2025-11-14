@@ -73,77 +73,86 @@ async function handleLookup() {
 }
 
 function renderWordCard(data) {
-  let meaningsHtml = '';
-  data.meanings.forEach(meaning => {
-    meaningsHtml += `
-      <div class="meaning">
-        <div class="meaning-type">${meaning.partOfSpeech}</div>
-        ${meaning.definitions.map(def => `
-          <div class="definition">${def.definition}</div>
-          ${def.example ? `<div class="example">"${def.example}"</div>` : ''}
-        `).join('')}
-      </div>
-    `;
-  });
+  let meaningsHtml = data.meanings.map(meaning => `
+    <div class="meaning">
+      <div class="meaning-type">${meaning.partOfSpeech}</div>
+      ${meaning.definitions.map(def => `
+        <div class="definition">${def.definition}</div>
+        ${def.example ? `<div class="example">"${def.example}"</div>` : ''}
+      `).join('')}
+    </div>
+  `).join('');
 
-  let synonymsHtml = '';
-  if (data.synonyms.length) {
-    synonymsHtml = `
-      <div class="synonyms">
-        <h4>Синонимы:</h4>
-        <div class="synonyms-list">
-          ${data.synonyms.map(syn => `<span class="synonym">${syn}</span>`).join('')}
-        </div>
+  let synonymsHtml = data.synonyms?.length ? `
+    <div class="synonyms">
+      <h4>Синонимы:</h4>
+      <div class="synonyms-list">
+        ${data.synonyms.map(syn => `<span class.name = "synonym">${syn}</span>`).join('')}
       </div>
-    `;
-  }
+    </div>
+  ` : '';
+
+  const isWordInDict = dict.getWords().some(w => w.word.toLowerCase() === data.word.toLowerCase());
 
   wordCardResult.innerHTML = `
     <div class="word-header">
       <div>
         <div class="word-title">${data.word}</div>
-        <div class="phonetic">${data.phonetic} (${data.translation})</div>
+        <div class="phonetic">${data.phonetic} (${Array.isArray(data.translation) ? data.translation[0] : data.translation})</div>
       </div>
       ${data.audioUrl ? `<button class="audio-btn" onclick="new Audio('${data.audioUrl}').play()">🔊</button>` : ''}
     </div>
     ${meaningsHtml}
     ${synonymsHtml}
-    <button class="add-to-dict">Добавить в словарь</button>
+    <button class="add-to-dict" ${isWordInDict ? 'disabled' : ''}>${isWordInDict ? 'Добавлено' : 'Добавить в словарь'}</button>
   `;
 
-  wordCardResult.querySelector('.add-to-dict').addEventListener('click', () => dict.addWord(data));
+  const addButton = wordCardResult.querySelector('.add-to-dict');
+  addButton.dataset.word = JSON.stringify(data); // Сохраняем данные для добавления
+
+  addButton.addEventListener('click', async (e) => {
+    const wordData = JSON.parse(e.currentTarget.dataset.word);
+    await dict.addWord(wordData);
+    e.currentTarget.textContent = 'Добавлено!';
+    e.currentTarget.disabled = true;
+  }, { once: true }); // Обработчик сработает только один раз
+
   wordCardResult.style.display = 'block';
 }
 
 function renderWordsList() {
   const words = dict.getWords();
   wordsList.innerHTML = '';
+  
   if (!words.length) {
     emptyDict.style.display = 'block';
+    wordsList.style.display = 'none';
     return;
   }
+  
   emptyDict.style.display = 'none';
+  wordsList.style.display = 'grid';
 
-  words.forEach(word => {
+  words.sort((a, b) => (a.word > b.word) ? 1 : -1).forEach(word => {
     const item = document.createElement('div');
     item.className = 'word-item';
+    const translation = Array.isArray(word.translation) ? word.translation[0] : word.translation;
     item.innerHTML = `
       <div class="word-item-title">${word.word}</div>
-      <div class="word-item-translation">${word.translation}</div>
-      <button class="delete-btn" style="float: right; background: none; border: none; cursor: pointer; color: red;">🗑️</button>
+      <div class="word-item-translation">${translation}</div>
+      <button class="delete-btn">🗑️</button>
     `;
-    item.querySelector('.delete-btn').addEventListener('click', () => {
+    item.querySelector('.delete-btn').addEventListener('click', async (e) => {
+      e.stopPropagation(); // Остановить всплытие события, чтобы не открылась карточка слова
       if (confirm(`Удалить слово "${word.word}"?`)) {
-        dict.removeWord(word.id);
+        await dict.removeWord(word.id);
         renderWordsList();
       }
     });
-    item.addEventListener('click', (e) => {
-      if (e.target.className !== 'delete-btn') {
-        lookupInput.value = word.word;
-        handleLookup();
-        switchView('lookup');
-      }
+    item.addEventListener('click', () => {
+      lookupInput.value = word.word;
+      switchView('lookup');
+      handleLookup();
     });
     wordsList.appendChild(item);
   });
@@ -156,13 +165,14 @@ function setupImportExport() {
   });
 
   importBtn.addEventListener('click', () => importFile.click());
-  importFile.addEventListener('change', (e) => {
+  importFile.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const success = dict.import(ev.target.result);
+    reader.onload = async (ev) => {
+      const success = await dict.import(ev.target.result);
       if (success) {
+        await dict.load(); // Перезагружаем слова из БД
         renderWordsList();
         alert('Импорт успешен!');
       } else {
@@ -170,6 +180,7 @@ function setupImportExport() {
       }
     };
     reader.readAsText(file);
+    e.target.value = ''; // Сбрасываем значение input, чтобы можно было загрузить тот же файл снова
   });
 }
 
@@ -191,33 +202,41 @@ function setupQR() {
 }
 
 function loadQuiz() {
-  const allWords = dict.getWords();
-  if (!allWords.length) {
+  const dueWords = dict.getWordsDue();
+  if (!dueWords.length) {
     quizContainer.style.display = 'none';
-    quizStart.innerHTML = '<p>Нет слов для повторения.</p><button id="start-quiz-btn" class="btn">🔄 Обновить</button>';
+    quizStart.innerHTML = `<p>Нет слов для повторения на сегодня. Выучите новые слова или зайдите позже.</p>`;
     quizStart.style.display = 'block';
-    document.getElementById('start-quiz-btn').addEventListener('click', loadQuiz);
     return;
   }
 
-  quizContainer.style.display = 'none';
-  quizStart.innerHTML = '<button id="start-quiz-btn" class="btn">Начать тренировку</button>';
+  quizStart.innerHTML = `<button id="start-quiz-btn" class="btn">Начать тренировку (${dueWords.length} слов)</button>`;
   quizStart.style.display = 'block';
+  quizContainer.style.display = 'none';
+  
   document.getElementById('start-quiz-btn').addEventListener('click', () => {
-    quizWords = [...allWords].sort(() => 0.5 - Math.random());
+    quizWords = [...dueWords].sort(() => 0.5 - Math.random());
     quizStart.style.display = 'none';
     quizContainer.style.display = 'block';
     nextQuizBtn.style.display = 'block';
     nextQuizBtn.disabled = true;
     showNextQuizQuestion();
-  });
+  }, { once: true });
 }
 
 function showNextQuizQuestion() {
-  if (!quizWords.length) {
+  const total = quizWords.length + (currentQuizWord ? 1 : 0);
+  const done = total - quizWords.length;
+  quizProgressBar.style.width = `${(done / total) * 100}%`;
+
+  if (!quizWords.length && !currentQuizWord) {
     quizQuestion.textContent = 'Тренировка завершена!';
     quizAnswers.innerHTML = '';
     nextQuizBtn.style.display = 'none';
+    quizContainer.style.display = 'none';
+    quizStart.innerHTML = `<p>Отличная работа! Все слова повторены.</p><button id="restart-quiz-btn" class="btn">🔄 Повторить снова</button>`;
+    quizStart.style.display = 'block';
+    document.getElementById('restart-quiz-btn').addEventListener('click', loadQuiz);
     return;
   }
   
@@ -228,14 +247,12 @@ function showNextQuizQuestion() {
   quizAnswers.innerHTML = '';
   
   const allWords = dict.getWords().filter(w => w.id !== word.id);
-  const wrongWords = allWords.sort(() => 0.5 - Math.random()).slice(0, 3);
-  const fallbackDef = word.meanings[0]?.definitions[0]?.definition?.substring(0, 50) || '';
+  const wrongOptions = allWords.sort(() => 0.5 - Math.random()).slice(0, 3);
+  const correctTranslation = Array.isArray(word.translation) ? word.translation[0] : word.translation;
+  
   const options = [
-    { text: word.translation || fallbackDef, correct: true },
-    ...wrongWords.map(w => {
-      const wFallback = w.meanings[0]?.definitions[0]?.definition?.substring(0, 50) || w.word;
-      return { text: w.translation || wFallback, correct: false };
-    })
+    { text: correctTranslation, correct: true },
+    ...wrongOptions.map(w => ({ text: (Array.isArray(w.translation) ? w.translation[0] : w.translation), correct: false }))
   ].sort(() => 0.5 - Math.random());
   
   options.forEach(opt => {
@@ -248,7 +265,7 @@ function showNextQuizQuestion() {
   });
 }
 
-function handleQuizAnswer(e) {
+async function handleQuizAnswer(e) {
   const isCorrect = e.target.dataset.correct === 'true';
   const buttons = document.querySelectorAll('.answer-btn');
   
@@ -261,34 +278,38 @@ function handleQuizAnswer(e) {
     }
   });
   
-  const grade = isCorrect ? 2 : 0; // Can extend to hard/easy later
-  dict.updateSRS(currentQuizWord.id, grade);
+  const grade = isCorrect ? 2 : 0;
+  await dict.updateSRS(currentQuizWord.id, grade);
   nextQuizBtn.disabled = false;
+  currentQuizWord = null; // Слово обработано
 }
 
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-  initTheme();
-  themeToggle.addEventListener('click', toggleTheme);
-  
-  navBtns.forEach(btn => {
-    btn.addEventListener('click', () => switchView(btn.dataset.view));
-  });
-  
-  searchBtn.addEventListener('click', handleLookup);
-  lookupInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') handleLookup();
-  });
-  
-  setupImportExport();
-  setupQR();
-  
-  nextQuizBtn.addEventListener('click', () => {
-    nextQuizBtn.disabled = true;
-    showNextQuizQuestion();
-  });
-  
-  startQuizBtn.addEventListener('click', loadQuiz);
-  
-  renderWordsList();
-});
+async function main() {
+    await dict.init();
+    
+    initTheme();
+    themeToggle.addEventListener('click', toggleTheme);
+    
+    navBtns.forEach(btn => {
+        btn.addEventListener('click', () => switchView(btn.dataset.view));
+    });
+    
+    searchBtn.addEventListener('click', handleLookup);
+    lookupInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleLookup();
+    });
+    
+    setupImportExport();
+    setupQR();
+    
+    nextQuizBtn.addEventListener('click', () => {
+        nextQuizBtn.disabled = true;
+        showNextQuizQuestion();
+    });
+    
+    // Инициализация первой view
+    switchView('lookup');
+}
+
+document.addEventListener('DOMContentLoaded', main);
+
